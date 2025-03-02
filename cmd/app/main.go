@@ -1,14 +1,23 @@
 package main
 
-import "frapuccino-alem/pkg/lib/prettyslog"
+import (
+	"database/sql"
+	"log"
+
+	_ "github.com/lib/pq"
+)
 
 func main() {
-	// setup config
+	db, err := sql.Open("postgres", "host=localhost user=postgres password=220021 dbname=testdb post=5432 sslmode=disable")
 
-	// logger
-	logger := prettyslog.SetupPrettySlog()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
-	//establish connections to database
+	defer db.Close()
 
-	//setup
+	err = db.Ping()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
