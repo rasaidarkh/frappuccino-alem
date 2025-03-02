@@ -3,7 +3,6 @@ package logger
 import (
 	"context"
 	"encoding/json"
-	"github.com/fatih/color"
 	"io"
 	stdLog "log"
 	"log/slog"
@@ -41,7 +40,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	case slog.LevelWarn:
 		level = "\033[33m" + level + "\033[0m" // Yellow
 	case slog.LevelError:
-		level = "\033[31m" + level + "\033[0m" // Red
+		level = "\033[31m" + level + "\033[0m"
 	}
 	fields := make(map[string]interface{}, r.NumAttrs())
 
@@ -66,7 +65,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 
 	timeStr := r.Time.Format("[15:05:05.000]")
-	msg := color.CyanString(r.Message)
+	msg := "\033[36m" + (r.Message) + "\033[0m"
 
 	h.l.Println(
 		timeStr,
