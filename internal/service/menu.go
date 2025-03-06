@@ -15,17 +15,17 @@ type MenuRepository interface {
 }
 
 type MenuService struct {
-	Repo MenuRepository
+	repo MenuRepository
 }
 
 func NewMenuService(repo MenuRepository) *MenuService {
-	return &MenuService{Repo: repo}
+	return &MenuService{repo: repo}
 }
 
 func (s *MenuService) CreateMenuItem(ctx context.Context, item models.MenuItem) (string, error) {
 	const op = "service.CreateMenuItem"
 	// logic here ...
-	id, err := s.Repo.CreateMenuItem(ctx, item)
+	id, err := s.repo.CreateMenuItem(ctx, item)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
@@ -35,7 +35,7 @@ func (s *MenuService) CreateMenuItem(ctx context.Context, item models.MenuItem) 
 func (s *MenuService) GetAllMenuItems(ctx context.Context) ([]models.MenuItem, error) {
 	const op = "service.GetAllMenuItems"
 	// logic here ...
-	items, err := s.Repo.GetAllMenuItems(ctx)
+	items, err := s.repo.GetAllMenuItems(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -46,7 +46,7 @@ func (s *MenuService) GetAllMenuItems(ctx context.Context) ([]models.MenuItem, e
 func (s *MenuService) GetMenuItemById(ctx context.Context, id string) (models.MenuItem, error) {
 	const op = "service.GetMenuItemById"
 	// logic here ...
-	item, err := s.Repo.GetMenuItemById(ctx, id)
+	item, err := s.repo.GetMenuItemById(ctx, id)
 	if err != nil {
 		return models.MenuItem{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -57,7 +57,7 @@ func (s *MenuService) GetMenuItemById(ctx context.Context, id string) (models.Me
 func (s *MenuService) DeleteMenuItemById(ctx context.Context, id string) error {
 	const op = "service.DeleteMenuItemById"
 	// logic here ...
-	err := s.Repo.DeleteMenuItemById(ctx, id)
+	err := s.repo.DeleteMenuItemById(ctx, id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -68,7 +68,7 @@ func (s *MenuService) DeleteMenuItemById(ctx context.Context, id string) error {
 func (s *MenuService) UpdateMenuItemById(ctx context.Context, id string, item models.MenuItem) error {
 	const op = "service.UpdateMenuItemById"
 	// logic here ...
-	err := s.Repo.UpdateMenuItemById(ctx, id, item)
+	err := s.repo.UpdateMenuItemById(ctx, id, item)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

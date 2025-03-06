@@ -58,7 +58,15 @@ func (r *OrderRepository) DeleteOrderById(ctx context.Context, orderId string) e
 func (r *OrderRepository) CloseOrderById(ctx context.Context, orderId string) error {
 	const op = "repository.CloseOrderById"
 
-	// logic here
+	// logic here ...
 
 	return nil
+}
+
+func (r *OrderRepository) GetNumberOfOrderedItems(ctx context.Context, startDate, endDate string) (map[string]int, error) {
+	const op = "repository.GetNumberOfOrderedItems"
+
+	// logic here ...
+
+	return nil, nil
 }

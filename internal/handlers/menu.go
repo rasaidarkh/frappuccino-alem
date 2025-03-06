@@ -16,8 +16,8 @@ type MenuService interface {
 }
 
 type MenuHandler struct {
-	Service MenuService
-	Logger  *slog.Logger
+	service MenuService
+	logger  *slog.Logger
 }
 
 func NewMenuHandler(service MenuService, logger *slog.Logger) *MenuHandler {
@@ -54,8 +54,4 @@ func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *MenuHandler) deleteMenuItemById(w http.ResponseWriter, r *http.Request) {
-}
-
-func validateMenuItem(item models.MenuItem) error {
-	return nil
 }

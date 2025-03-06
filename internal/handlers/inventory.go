@@ -16,8 +16,8 @@ type InventoryService interface {
 }
 
 type InventoryHandler struct {
-	Service InventoryService
-	Logger  *slog.Logger
+	service InventoryService
+	logger  *slog.Logger
 }
 
 func NewInventoryHandler(service InventoryService, logger *slog.Logger) *InventoryHandler {
@@ -39,28 +39,24 @@ func (h *InventoryHandler) RegisterEndpoints(mux *http.ServeMux) {
 
 	mux.HandleFunc("DELETE /inventory/{id}", h.deleteInventoryItemById)
 	mux.HandleFunc("DELETE /inventory/{id}/", h.deleteInventoryItemById)
+
+	mux.HandleFunc("GET /inventory/getLeftOvers", h.GetLeftOvers)
 }
 
 func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (h *InventoryHandler) getAllInventoryItems(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (h *InventoryHandler) getInventoryItemById(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (h *InventoryHandler) updateInventoryItemById(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *http.Request) {
-
 }
 
-func validateInventoryItem(item models.InventoryItem) error {
-	return nil
+func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
 }

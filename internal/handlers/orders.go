@@ -14,15 +14,16 @@ type OrderService interface {
 	UpdateOrderById(ctx context.Context, OrderId string, item models.Order) error
 	DeleteOrderById(ctx context.Context, OrderId string) error
 	CloseOrderById(ctx context.Context, OrderId string) error
+	GetNumberOfOrderedItems(ctx context.Context, startDate, endDate string) (map[string]int, error)
 }
 
 type OrderHandler struct {
-	Service OrderService
-	Logger  *slog.Logger
+	service OrderService
+	logger  *slog.Logger
 }
 
-func NewOrderHandler(orderService OrderService, logger *slog.Logger) *OrderHandler {
-	return &OrderHandler{orderService, logger}
+func NewOrderHandler(service OrderService, logger *slog.Logger) *OrderHandler {
+	return &OrderHandler{service, logger}
 }
 
 func (h *OrderHandler) RegisterEndpoints(mux *http.ServeMux) {
@@ -43,10 +44,11 @@ func (h *OrderHandler) RegisterEndpoints(mux *http.ServeMux) {
 
 	mux.HandleFunc("POST /orders/{id}/close", h.CloseOrderById)
 	mux.HandleFunc("POST /orders/{id}/close/", h.CloseOrderById)
+
+	mux.HandleFunc("GET /orders/numberOfOrderedItems", h.GetNumberOfOrderedItems)
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
@@ -62,4 +64,7 @@ func (h *OrderHandler) DeleteOrderById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) CloseOrderById(w http.ResponseWriter, r *http.Request) {
+}
+
+func (h *OrderHandler) GetNumberOfOrderedItems(w http.ResponseWriter, r *http.Request) {
 }
