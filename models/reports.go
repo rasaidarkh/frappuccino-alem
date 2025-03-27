@@ -1,8 +1,8 @@
 package models
 
 type PopularItem struct {
-	ProductId string `json:"product_id"`
-	Sold      int    `json:"total_quantity"`
+	ProductId int `json:"product_id"`
+	Sold      int `json:"total_quantity"`
 }
 
 type SearchResult struct {
@@ -12,7 +12,7 @@ type SearchResult struct {
 }
 
 type SearchMenuItem struct {
-	ID          string  `json:"id"`
+	ID          int     `json:"id"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
@@ -20,7 +20,7 @@ type SearchMenuItem struct {
 }
 
 type SearchOrder struct {
-	ID           string   `json:"id"`
+	ID           int      `json:"id"`
 	CustomerName string   `json:"customer_name"`
 	Items        []string `json:"items"`
 	Total        float64  `json:"total"`

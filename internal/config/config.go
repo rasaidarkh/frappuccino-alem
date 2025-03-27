@@ -23,7 +23,7 @@ type DataBase struct {
 	DBName     string
 }
 
-func LoadConfig() Config {
+func Load() Config {
 	return Config{
 		Server{
 			Address: getEnv("Adress", ""),

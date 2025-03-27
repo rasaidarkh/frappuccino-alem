@@ -6,8 +6,8 @@ import (
 	"frappuccino-alem/internal/config"
 	"frappuccino-alem/internal/handlers"
 	"frappuccino-alem/internal/handlers/middleware"
-	"frappuccino-alem/internal/repository"
 	"frappuccino-alem/internal/service"
+	"frappuccino-alem/internal/store"
 	"log/slog"
 	"net/http"
 )
@@ -26,27 +26,34 @@ func NewAPIServer(mux *http.ServeMux, config config.Config, db *sql.DB, logger *
 func (s *APIServer) Run() error {
 
 	// setup three layers for each of the entities
-	inventoryRepository := repository.NewInventoryRepository(s.db)
-	inventoryService := service.NewInventoryService(inventoryRepository)
+	inventoryStore := store.NewInventoryStore(s.db)
+	inventoryService := service.NewInventoryService(inventoryStore)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService, s.logger)
 	inventoryHandler.RegisterEndpoints(s.mux)
 
-	menuRepository := repository.NewMenuRepository(s.db)
-	menuService := service.NewMenuService(menuRepository)
+	menuStore := store.NewMenuStore(s.db)
+	menuService := service.NewMenuService(menuStore)
 	menuHandler := handlers.NewMenuHandler(menuService, s.logger)
 	menuHandler.RegisterEndpoints(s.mux)
 
-	orderRepository := repository.NewOrderRepository(s.db)
-	orderService := service.NewOrderService(orderRepository)
+	orderStore := store.NewOrderStore(s.db)
+	orderService := service.NewOrderService(orderStore)
 	orderHandler := handlers.NewOrderHandler(orderService, s.logger)
 	orderHandler.RegisterEndpoints(s.mux)
 
+	reportStore := store.NewReportStore(s.db)
+	reportService := service.NewReportService(reportStore)
+	reportHandler := handlers.NewReportHandler(reportService, s.logger)
+	reportHandler.RegisterEndpoints(s.mux)
+
 	// add middleware if needed
 	timeoutMW := middleware.NewTimoutContextMW(15)
+	// WholeMwChain
 	MWChain := middleware.NewMiddlewareChain(middleware.RecoveryMW, timeoutMW)
 
 	// start server
 	serverAddress := fmt.Sprintf("%s:%s", s.cfg.Server.Address, s.cfg.Server.Port)
 
+	s.logger.Info("starting server", slog.String("host", serverAddress))
 	return http.ListenAndServe(serverAddress, MWChain(s.mux))
 }

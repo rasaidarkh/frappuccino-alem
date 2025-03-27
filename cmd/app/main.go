@@ -14,7 +14,7 @@ import (
 
 func main() {
 	// setup config
-	cfg := config.LoadConfig()
+	cfg := config.Load()
 	// setup logger
 	logger := prettyslog.SetupPrettySlog(os.Stdout) // add level based logging
 

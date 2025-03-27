@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"errors"
+	"frappuccino-alem/internal/utils"
 	"frappuccino-alem/models"
 	"log/slog"
 	"net/http"
@@ -44,6 +46,20 @@ func (h *InventoryHandler) RegisterEndpoints(mux *http.ServeMux) {
 }
 
 func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Request) {
+	var item models.InventoryItem
+
+	if err := utils.ParseJSON(r, &item); err != nil {
+		h.logger.Error("Failed to parse inventory item request", "error", err)
+		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid request payload"))
+		return
+	}
+
+	if err := validateInventoryItem(item); err != nil {
+		h.logger.Warn("Wrong  inventory item body", "error", err)
+		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid request payload"))
+		return
+	}
+
 }
 
 func (h *InventoryHandler) getAllInventoryItems(w http.ResponseWriter, r *http.Request) {
@@ -59,4 +75,17 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 }
 
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
+}
+
+func validateInventoryItem(item models.InventoryItem) error {
+	if item.Name == "" {
+		return errors.New("item  cannot be empty")
+	}
+	if item.StockLevel <= 0 {
+		return errors.New("stock level must be greater than zero")
+	}
+	if item.UnitType == "" {
+		return errors.New("unit type cannot be empty")
+	}
+	return nil
 }

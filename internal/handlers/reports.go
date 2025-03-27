@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"frappuccino-alem/models"
+	"log/slog"
 	"net/http"
 )
 
@@ -14,10 +15,11 @@ type ReportService interface {
 
 type ReportHandler struct {
 	service ReportService
+	logger  *slog.Logger
 }
 
-func NewReportHandler(service ReportService) *ReportHandler {
-	return &ReportHandler{service}
+func NewReportHandler(service ReportService, logger *slog.Logger) *ReportHandler {
+	return &ReportHandler{service, logger}
 }
 
 func (h *ReportHandler) RegisterEndpoints(mux *http.ServeMux) {
