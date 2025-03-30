@@ -14,6 +14,34 @@ CREATE TYPE ORDER_STATUS AS ENUM ('pending', 'processing', 'completed', 'cancell
 CREATE TYPE PAYMENT_METHOD AS ENUM ('cash', 'card', 'online');
 CREATE TYPE STAFF_ROLE AS ENUM ('barista', 'cashier', 'manager');
 
+CREATE TABLE inventory (
+    id SERIAL PRIMARY KEY,
+    item_name TEXT NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0),
+    unit_type TEXT NOT NULL,
+    last_updated TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE menu_items (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
+    categories TEXT[] DEFAULT '{}',
+    allergens TEXT[] DEFAULT '{}',
+    metadata JSONB DEFAULT '{}'
+);
+
+CREATE TABLE menu_item_ingredients (
+    menu_item_id INT REFERENCES menu_items(id)  ON DELETE CASCADE NOT NULL,
+    ingredient_id INT REFERENCES inventory(id) ON DELETE CASCADE  NOT NULL,
+    quantity_used DECIMAL(10,2) NOT NULL CHECK (quantity_used > 0),
+    PRIMARY KEY (menu_item_id, ingredient_id)
+);
+
+
+
+
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
     customer_name TEXT NOT NULL,
@@ -33,35 +61,9 @@ CREATE TABLE order_items (
     price_at_order DECIMAL(10,2) NOT NULL CHECK (price_at_order >= 0)
 );
 
-CREATE TABLE menu_items (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
-    categories TEXT[] DEFAULT '{}',
-    allergens TEXT[] DEFAULT '{}',
-    metadata JSONB DEFAULT '{}'
-);
-
-CREATE TABLE menu_item_ingredients (
-    menu_item_id INT REFERENCES menu_items(id) NOT NULL ON DELETE CASCADE,
-    ingredient_id INT REFERENCES inventory(id) NOT NULL ON DELETE CASCADE,
-    quantity_used DECIMAL(10,2) NOT NULL CHECK (quantity_used > 0),
-    PRIMARY KEY (menu_item_id, ingredient_id)
-);
-
-CREATE TABLE inventory (
-    id SERIAL PRIMARY KEY,
-    item_name TEXT NOT NULL,
-    quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0),
-    unit_type TEXT NOT NULL,
-    last_updated TIMESTAMPTZ DEFAULT NOW()
-);
-
-
 CREATE TABLE order_status_history (
     id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders(id) NOT NULL ON DELETE CASCADE,
+    order_id INT REFERENCES orders(id) ON DELETE CASCADE  NOT NULL,
     status ORDER_STATUS NOT NULL,
     changed_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -69,7 +71,7 @@ CREATE TABLE order_status_history (
 
 CREATE TABLE price_history (
     id SERIAL PRIMARY KEY,
-    menu_item_id INT REFERENCES menu_items(id) NOT NULL ON DELETE CASCADE,
+    menu_item_id INT REFERENCES menu_items(id)  ON DELETE CASCADE NOT NULL,
     old_price DECIMAL(10,2) NOT NULL CHECK (old_price >= 0),
     new_price DECIMAL(10,2) NOT NULL CHECK (new_price >= 0),
     changed_at TIMESTAMPTZ DEFAULT NOW()
@@ -78,7 +80,7 @@ CREATE TABLE price_history (
 
 CREATE TABLE inventory_transactions (
     id SERIAL PRIMARY KEY,
-    inventory_id INT REFERENCES inventory(id) NOT NULL ON DELETE CASCADE,
+    inventory_id INT REFERENCES inventory(id)ON DELETE CASCADE  NOT NULL,
     quantity_change DECIMAL(10,2) NOT NULL,
     reason TEXT NOT NULL,
     transaction_time TIMESTAMPTZ DEFAULT NOW()
@@ -88,7 +90,7 @@ CREATE TABLE staff (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     role STAFF_ROLE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Insert mock staff
