@@ -1,12 +1,14 @@
-CREATE DATABASE frappuccino_db
+ALTER USER latte WITH PASSWORD 'latte';
+
+CREATE DATABASE frappuccino
     WITH
-    OWNER = postgres
+    OWNER = latte
     ENCODING = 'UTF8'
     LOCALE_PROVIDER = 'libc'
     CONNECTION LIMIT = -1
     IS_TEMPLATE = False;
 
-ALTER USER postgres WITH PASSWORD 'latte';
+
 
 CREATE TYPE ORDER_STATUS AS ENUM ('pending', 'processing', 'completed', 'cancelled');
 CREATE TYPE PAYMENT_METHOD AS ENUM ('cash', 'card', 'online');
