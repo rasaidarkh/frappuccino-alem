@@ -18,7 +18,7 @@ type Server struct {
 type DataBase struct {
 	DBUser     string
 	DBPassword string
-	DBAddress  string
+	DBHost     string
 	DBPort     string
 	DBName     string
 }
@@ -26,13 +26,13 @@ type DataBase struct {
 func Load() Config {
 	return Config{
 		Server{
-			Address: getEnv("Adress", ""),
-			Port:    getEnv("Port", "8080"),
+			Address: getEnv("ADDRESS", ""),
+			Port:    getEnv("PORT", "8080"),
 		},
 		DataBase{
 			DBUser:     getEnv("DB_USER", "postgres"),
 			DBPassword: getEnv("DB_PASSWORD", "latte"),
-			DBAddress:  getEnv("DB_ADDRESS", "localhost"),
+			DBHost:     getEnv("DB_HOST", "db"),
 			DBPort:     getEnv("DB_PORT", "5432"),
 			DBName:     getEnv("DB_NAME", "frappuccino"),
 		},
@@ -42,7 +42,7 @@ func Load() Config {
 func (d *DataBase) MakeConnectionString() string {
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		d.DBAddress, d.DBPort, d.DBUser, d.DBPassword, d.DBName,
+		d.DBHost, d.DBPort, d.DBUser, d.DBPassword, d.DBName,
 	)
 }
 

@@ -73,6 +73,14 @@ func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Re
 }
 
 func (h *InventoryHandler) getAllInventoryItems(w http.ResponseWriter, r *http.Request) {
+	items, err := h.service.GetAllInventoryItems(r.Context())
+	if err != nil {
+		h.logger.Error("Failed to get all inventory items", "error", err)
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	h.logger.Info("Succeeded to get all inventory items")
+	utils.WriteJSON(w, http.StatusOK, items)
 }
 
 func (h *InventoryHandler) getInventoryItemById(w http.ResponseWriter, r *http.Request) {

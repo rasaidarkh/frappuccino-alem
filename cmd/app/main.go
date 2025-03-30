@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"frappuccino-alem/internal/api"
 	"frappuccino-alem/internal/config"
 	"frappuccino-alem/pkg/lib/prettyslog"
@@ -20,16 +21,17 @@ func main() {
 
 	//create database object
 	connStr := cfg.DB.MakeConnectionString()
-	db, _ := sql.Open("postgres", connStr)
-	// if err != nil {
-	// 	log.Fatalf("could not open database:%s", err)
-	// }
+	fmt.Println(connStr)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatalf("could not open database:%s", err)
+	}
 
 	//ping database
-	_ = db.Ping()
-	// if err != nil {
-	// 	log.Fatalf("could not ping database:%s", err)
-	// }
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("could not ping database:%s", err)
+	}
 
 	// create serve mux
 	mux := http.NewServeMux()

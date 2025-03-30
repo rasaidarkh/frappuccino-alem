@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/models"
 )
@@ -36,8 +37,28 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 func (r *InventoryStore) GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error) {
 	const op = "Store.GetAllInventoryItems"
 	var items []entity.InventoryItem
-	// logic here ...
 
+	stmt, err := r.db.PrepareContext(ctx, "SELECT * FROM inventory")
+	if err != nil {
+		return items, fmt.Errorf("%s: %w", op, err)
+	}
+	rows, err := stmt.QueryContext(ctx)
+	if err != nil {
+		return items, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item entity.InventoryItem
+		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.LastUpdated)
+		if err != nil {
+			return items, fmt.Errorf("%s: %w", op, err)
+		}
+		items = append(items, item)
+	}
+	err = rows.Err()
+	if err != nil {
+		return items, fmt.Errorf("%s: %w", op, err)
+	}
 	return items, nil
 }
 
