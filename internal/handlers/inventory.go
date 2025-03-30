@@ -3,18 +3,18 @@ package handlers
 import (
 	"context"
 	"errors"
+	entity "frappuccino-alem/internal/entity"
 	"frappuccino-alem/internal/utils"
-	"frappuccino-alem/models"
 	"log/slog"
 	"net/http"
 )
 
 type InventoryService interface {
-	CreateInventoryItem(ctx context.Context, item models.InventoryItem) (string, error)
-	GetAllInventoryItems(ctx context.Context) ([]models.InventoryItem, error)
-	GetInventoryItemById(ctx context.Context, InventoryId string) (models.InventoryItem, error)
+	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (string, error)
+	GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error)
+	GetInventoryItemById(ctx context.Context, InventoryId string) (entity.InventoryItem, error)
 	DeleteInventoryItemById(ctx context.Context, InventoryId string) error
-	UpdateInventoryItemById(ctx context.Context, InventoryId string, item models.InventoryItem) error
+	UpdateInventoryItemById(ctx context.Context, InventoryId string, item entity.InventoryItem) error
 }
 
 type InventoryHandler struct {
@@ -46,7 +46,7 @@ func (h *InventoryHandler) RegisterEndpoints(mux *http.ServeMux) {
 }
 
 func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Request) {
-	var item models.InventoryItem
+	var item entity.InventoryItem
 
 	if err := utils.ParseJSON(r, &item); err != nil {
 		h.logger.Error("Failed to parse inventory item request", "error", err)
@@ -77,7 +77,7 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
 }
 
-func validateInventoryItem(item models.InventoryItem) error {
+func validateInventoryItem(item entity.InventoryItem) error {
 	if item.Name == "" {
 		return errors.New("item  cannot be empty")
 	}
