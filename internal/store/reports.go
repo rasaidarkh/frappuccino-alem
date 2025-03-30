@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
-	"frappuccino-alem/models"
+	"frappuccino-alem/internal/entity"
 )
 
 type ReportStore struct {
@@ -14,7 +14,7 @@ func NewReportStore(db *sql.DB) *ReportStore {
 	return &ReportStore{db}
 }
 
-func (r *ReportStore) GetPopularItems(ctx context.Context) ([]models.PopularItem, error) {
+func (r *ReportStore) GetPopularItems(ctx context.Context) ([]entity.PopularItem, error) {
 	const op = "Store.GetPopularItems"
 
 	// logic here ...

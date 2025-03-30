@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/models"
 )
 
@@ -14,32 +15,42 @@ func NewInventoryStore(db *sql.DB) *InventoryStore {
 	return &InventoryStore{db}
 }
 
-func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item models.InventoryItem) (string, error) {
+func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error) {
 	const op = "Store.CreateInventoryItem"
 
-	// logic here ...
-
-	return "", nil
+	ItemModel := models.Inventory{
+		Name:        item.Name,
+		Quantity:    item.Quantity,
+		UnitType:    item.Unit,
+		LastUpdated: item.LastUpdated,
+	}
+	var id int64
+	row := r.db.QueryRowContext(ctx, "INSERT INTO inventory (item_name,quantity,unit,last_updated) VALUES ($1,$2,$3,$4) RETURNING id", ItemModel.Name, ItemModel.Quantity, ItemModel.UnitType, ItemModel.LastUpdated)
+	err := row.Scan(&id)
+	if err != nil {
+		return -1, err
+	}
+	return id, nil
 }
 
-func (r *InventoryStore) GetAllInventoryItems(ctx context.Context) ([]models.InventoryItem, error) {
+func (r *InventoryStore) GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error) {
 	const op = "Store.GetAllInventoryItems"
-	var items []models.InventoryItem
+	var items []entity.InventoryItem
 	// logic here ...
 
 	return items, nil
 }
 
-func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id string) (models.InventoryItem, error) {
+func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error) {
 	const op = "Store.GetInventoryItemById"
-	var item models.InventoryItem
+	var item entity.InventoryItem
 
 	// logic here ...
 
 	return item, nil
 }
 
-func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id string) error {
+func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id int64) error {
 	const op = "Store.DeleteInventoryItemById"
 
 	// logic here ...
@@ -47,7 +58,7 @@ func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id string)
 	return nil
 }
 
-func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id string, item models.InventoryItem) error {
+func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) error {
 	const op = "Store.UpdateInventoryItemById"
 
 	// logic here ...

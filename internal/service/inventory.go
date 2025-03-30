@@ -3,15 +3,15 @@ package service
 import (
 	"context"
 	"fmt"
-	"frappuccino-alem/models"
+	"frappuccino-alem/internal/entity"
 )
 
 type InventoryRepository interface {
-	GetAllInventoryItems(ctx context.Context) ([]models.InventoryItem, error)
-	GetInventoryItemById(ctx context.Context, id string) (models.InventoryItem, error)
-	DeleteInventoryItemById(ctx context.Context, id string) error
-	UpdateInventoryItemById(ctx context.Context, id string, item models.InventoryItem) error
-	CreateInventoryItem(ctx context.Context, item models.InventoryItem) (string, error)
+	GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error)
+	GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
+	DeleteInventoryItemById(ctx context.Context, id int64) error
+	UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) error
+	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
 }
 
 type InventoryService struct {
@@ -22,18 +22,18 @@ func NewInventoryService(repo InventoryRepository) *InventoryService {
 	return &InventoryService{repo: repo}
 }
 
-func (s *InventoryService) CreateInventoryItem(ctx context.Context, item models.InventoryItem) (string, error) {
+func (s *InventoryService) CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error) {
 	const op = "service.CreateInventoryItem"
-	// logic here ...
+
 	id, err := s.repo.CreateInventoryItem(ctx, item)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return id, nil
 }
 
-func (s *InventoryService) GetAllInventoryItems(ctx context.Context) ([]models.InventoryItem, error) {
+func (s *InventoryService) GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error) {
 	const op = "service.GetAllInventoryItems"
 	// logic here ...
 	items, err := s.repo.GetAllInventoryItems(ctx)
@@ -44,18 +44,18 @@ func (s *InventoryService) GetAllInventoryItems(ctx context.Context) ([]models.I
 	return items, nil
 }
 
-func (s *InventoryService) GetInventoryItemById(ctx context.Context, InventoryId string) (models.InventoryItem, error) {
+func (s *InventoryService) GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
 	const op = "service.GetInventoryItemById"
 	// logic here ...
 	item, err := s.repo.GetInventoryItemById(ctx, InventoryId)
 	if err != nil {
-		return models.InventoryItem{}, fmt.Errorf("%s: %w", op, err)
+		return entity.InventoryItem{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return item, nil
 }
 
-func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId string) error {
+func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId int64) error {
 	const op = "service.DeleteInventoryItemById"
 	// logic here ...
 	err := s.repo.DeleteInventoryItemById(ctx, InventoryId)
@@ -66,7 +66,7 @@ func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, Inventor
 	return nil
 }
 
-func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId string, item models.InventoryItem) error {
+func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId int64, item entity.InventoryItem) error {
 	const op = "service.UpdateInventoryItemById"
 	// logic here ...
 	err := s.repo.UpdateInventoryItemById(ctx, InventoryId, item)

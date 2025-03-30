@@ -1,4 +1,4 @@
-package models
+package entity
 
 type PopularItem struct {
 	ProductId int `json:"product_id"`
@@ -12,9 +12,9 @@ type SearchResult struct {
 }
 
 type SearchMenuItem struct {
-	ID          int     `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string
 	Price       float64 `json:"price"`
 	Relevance   float64 `json:"relevance"`
 }

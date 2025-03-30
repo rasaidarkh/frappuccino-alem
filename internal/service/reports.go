@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"frappuccino-alem/models"
+	"frappuccino-alem/internal/entity"
 )
 
 type ReportRepository interface {
-	GetPopularItems(ctx context.Context) ([]models.PopularItem, error)
+	GetPopularItems(ctx context.Context) ([]entity.PopularItem, error)
 	GetTotalSales(ctx context.Context) (float64, error)
 }
 
@@ -19,13 +19,13 @@ func NewReportService(repo ReportRepository) *ReportService {
 	return &ReportService{repo}
 }
 
-func (s *ReportService) GetPopularItems(ctx context.Context) ([]models.PopularItem, error) {
+func (s *ReportService) GetPopularItems(ctx context.Context) ([]entity.PopularItem, error) {
 	const op = "service.GetPopularItems"
 	// logic here ...
 
 	popularItems, err := s.repo.GetPopularItems(ctx)
 	if err != nil {
-		return []models.PopularItem{}, fmt.Errorf("%s: %w", op, err)
+		return []entity.PopularItem{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return popularItems, nil

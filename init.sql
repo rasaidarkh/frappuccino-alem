@@ -32,8 +32,8 @@ CREATE TABLE menu_items (
 );
 
 CREATE TABLE menu_item_ingredients (
-    menu_item_id INT REFERENCES menu_items(id) ON DELETE CASCADE,
-    ingredient_id INT REFERENCES inventory(id) ON DELETE CASCADE,
+    menu_item_id INT REFERENCES menu_items(id) NOT NULL ON DELETE CASCADE,
+    ingredient_id INT REFERENCES inventory(id) NOT NULL ON DELETE CASCADE,
     quantity_used DECIMAL(10,2) NOT NULL CHECK (quantity_used > 0),
     PRIMARY KEY (menu_item_id, ingredient_id)
 );
@@ -42,14 +42,14 @@ CREATE TABLE inventory (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0),
-    unit TEXT NOT NULL,
+    unit_type TEXT NOT NULL,
     last_updated TIMESTAMPTZ DEFAULT NOW()
 );
 
 
 CREATE TABLE order_status_history (
     id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders(id) ON DELETE CASCADE,
+    order_id INT REFERENCES orders(id) NOT NULL ON DELETE CASCADE,
     status ORDER_STATUS NOT NULL,
     changed_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -57,7 +57,7 @@ CREATE TABLE order_status_history (
 
 CREATE TABLE price_history (
     id SERIAL PRIMARY KEY,
-    menu_item_id INT REFERENCES menu_items(id) ON DELETE CASCADE,
+    menu_item_id INT REFERENCES menu_items(id) NOT NULL ON DELETE CASCADE,
     old_price DECIMAL(10,2) NOT NULL CHECK (old_price >= 0),
     new_price DECIMAL(10,2) NOT NULL CHECK (new_price >= 0),
     changed_at TIMESTAMPTZ DEFAULT NOW()
@@ -66,7 +66,7 @@ CREATE TABLE price_history (
 
 CREATE TABLE inventory_transactions (
     id SERIAL PRIMARY KEY,
-    inventory_id INT REFERENCES inventory(id) ON DELETE CASCADE,
+    inventory_id INT REFERENCES inventory(id) NOT NULL ON DELETE CASCADE,
     quantity_change DECIMAL(10,2) NOT NULL,
     reason TEXT NOT NULL,
     transaction_time TIMESTAMPTZ DEFAULT NOW()
@@ -74,7 +74,7 @@ CREATE TABLE inventory_transactions (
 
 CREATE TABLE staff (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50),
+    name VARCHAR(50) NOT NULL,
     role STAFF_ROLE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
 )

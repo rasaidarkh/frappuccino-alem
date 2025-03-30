@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"context"
-	"frappuccino-alem/models"
+	"frappuccino-alem/internal/entity"
 	"log/slog"
 	"net/http"
 )
 
 type ReportService interface {
-	GetPopularItems(ctx context.Context) ([]models.PopularItem, error)
+	GetPopularItems(ctx context.Context) ([]entity.PopularItem, error)
 	GetTotalSales(ctx context.Context) (float64, error)
 	// GetFilterSearch ??
 }

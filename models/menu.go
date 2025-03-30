@@ -17,6 +17,13 @@ type MenuItem struct {
 	CreatedAt   time.Time      `json:"created_at"`
 }
 
+type MenuItemIngredient struct {
+	ID               int64   `json:"id"`
+	MenuItemID       int64   `json:"menu_item_id"`
+	InventoryID      int64   `json:"inventory_id"`
+	QuantityRequired float64 `json:"quantity_required"` // Amount needed per recipe
+}
+
 type PriceHistory struct {
 	ID         int       `json:"id"`
 	MenuItemId int       `json:"menu_item_id"`

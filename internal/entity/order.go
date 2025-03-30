@@ -1,4 +1,4 @@
-package models
+package entity
 
 import (
 	"time"
@@ -13,23 +13,6 @@ type Order struct {
 	SpecialInstructions JSONB
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
-}
-
-type OrderStatusHistory struct {
-	ID             int
-	OrderID        int
-	PreviousStatus OrderStatus
-	NewStatus      OrderStatus
-	ChangedAt      time.Time
-}
-
-type OrderItem struct {
-	ID            int64
-	OrderID       int64
-	MenuItemID    int64
-	Quantity      int
-	PriceAtTime   float64
-	Customization JSONB
 }
 
 type OrderStatus int

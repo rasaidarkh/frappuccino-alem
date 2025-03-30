@@ -3,18 +3,19 @@ package handlers
 import (
 	"context"
 	"errors"
-	entity "frappuccino-alem/internal/entity"
+	"frappuccino-alem/internal/entity"
+	"frappuccino-alem/internal/handlers/types"
 	"frappuccino-alem/internal/utils"
 	"log/slog"
 	"net/http"
 )
 
 type InventoryService interface {
-	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (string, error)
+	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
 	GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error)
-	GetInventoryItemById(ctx context.Context, InventoryId string) (entity.InventoryItem, error)
-	DeleteInventoryItemById(ctx context.Context, InventoryId string) error
-	UpdateInventoryItemById(ctx context.Context, InventoryId string, item entity.InventoryItem) error
+	GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
+	DeleteInventoryItemById(ctx context.Context, InventoryId int64) error
+	UpdateInventoryItemById(ctx context.Context, InventoryId int64, item entity.InventoryItem) error
 }
 
 type InventoryHandler struct {
@@ -46,8 +47,7 @@ func (h *InventoryHandler) RegisterEndpoints(mux *http.ServeMux) {
 }
 
 func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Request) {
-	var item entity.InventoryItem
-
+	var item types.InventoryItemRequest
 	if err := utils.ParseJSON(r, &item); err != nil {
 		h.logger.Error("Failed to parse inventory item request", "error", err)
 		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid request payload"))
@@ -55,11 +55,21 @@ func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := validateInventoryItem(item); err != nil {
-		h.logger.Warn("Wrong  inventory item body", "error", err)
-		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid request payload"))
+		h.logger.Error("Some of the fields are incorrect", "error", err)
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
+	entity := item.MapToInventoryItemEntity()
+
+	id, err := h.service.CreateInventoryItem(r.Context(), entity)
+	if err != nil {
+		h.logger.Error("Failed to create new inventory item", "error", err)
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	h.logger.Info("Succeeded to create new inventory item", slog.Int64("id", id))
+	utils.WriteJSON(w, http.StatusCreated, "created new inventory item")
 }
 
 func (h *InventoryHandler) getAllInventoryItems(w http.ResponseWriter, r *http.Request) {
@@ -77,11 +87,11 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
 }
 
-func validateInventoryItem(item entity.InventoryItem) error {
+func validateInventoryItem(item types.InventoryItemRequest) error {
 	if item.Name == "" {
 		return errors.New("item  cannot be empty")
 	}
-	if item.StockLevel <= 0 {
+	if item.Quantity <= 0 {
 		return errors.New("stock level must be greater than zero")
 	}
 	if item.UnitType == "" {

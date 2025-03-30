@@ -1,29 +1,15 @@
-package models
+package entity
 
 import (
 	"time"
 )
 
-type Inventory struct {
+type InventoryItem struct {
 	ID          int
 	Name        string
 	Quantity    float64
 	Unit        string
 	LastUpdated time.Time
-}
-
-type InventoryTransaction struct {
-	ID              int
-	InventoryID     int
-	QuantityChange  float64
-	Reason          string
-	TransactionTime time.Time
-}
-
-type MenuItemIngredient struct {
-	MenuItemID   int
-	IngredientID int
-	QuantityUsed float64
 }
 
 type ChangeType int
