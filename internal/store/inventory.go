@@ -22,11 +22,11 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 	ItemModel := models.Inventory{
 		Name:        item.Name,
 		Quantity:    item.Quantity,
-		UnitType:    item.Unit,
+		Unit:        item.Unit,
 		LastUpdated: item.LastUpdated,
 	}
 	var id int64
-	row := r.db.QueryRowContext(ctx, "INSERT INTO inventory (item_name,quantity,unit,last_updated) VALUES ($1,$2,$3,$4) RETURNING id", ItemModel.Name, ItemModel.Quantity, ItemModel.UnitType, ItemModel.LastUpdated)
+	row := r.db.QueryRowContext(ctx, "INSERT INTO inventory (item_name,quantity,unit,last_updated) VALUES ($1,$2,$3,$4) RETURNING id", ItemModel.Name, ItemModel.Quantity, ItemModel.Unit, ItemModel.LastUpdated)
 	err := row.Scan(&id)
 	if err != nil {
 		return -1, err

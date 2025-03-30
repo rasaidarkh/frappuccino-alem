@@ -1,15 +1,3 @@
-ALTER USER latte WITH PASSWORD 'latte';
-
-CREATE DATABASE frappuccino
-    WITH
-    OWNER = latte
-    ENCODING = 'UTF8'
-    LOCALE_PROVIDER = 'libc'
-    CONNECTION LIMIT = -1
-    IS_TEMPLATE = False;
-
-
-
 CREATE TYPE ORDER_STATUS AS ENUM ('pending', 'processing', 'completed', 'cancelled');
 CREATE TYPE PAYMENT_METHOD AS ENUM ('cash', 'card', 'online');
 CREATE TYPE STAFF_ROLE AS ENUM ('barista', 'cashier', 'manager');
@@ -18,7 +6,7 @@ CREATE TABLE inventory (
     id SERIAL PRIMARY KEY,
     item_name TEXT NOT NULL,
     quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0),
-    unit_type TEXT NOT NULL,
+    unit TEXT NOT NULL,
     last_updated TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -100,7 +88,7 @@ INSERT INTO staff (name, role) VALUES
     ('Charlie Davis', 'manager');
 
 -- Insert mock inventory
-INSERT INTO inventory (item_name, quantity, unit_type) VALUES
+INSERT INTO inventory (item_name, quantity, unit) VALUES
     ('Espresso Beans', 50, 'kg'),
     ('Milk', 100, 'liters'),
     ('Sugar', 30, 'kg'),

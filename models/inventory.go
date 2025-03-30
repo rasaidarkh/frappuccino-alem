@@ -7,8 +7,8 @@ import (
 type Inventory struct {
 	ID          int64     `json:"id"`
 	Name        string    `json:"item_name"`
-	Quantity    float64   `json:"quantity"`  // Supports fractional amounts (e.g., 0.5 kg)
-	UnitType    string    `json:"unit_type"` // "kg", "liters", "pieces", etc.
+	Quantity    float64   `json:"quantity"` // Supports fractional amounts (e.g., 0.5 kg)
+	Unit        string    `json:"unit"`     // "kg", "liters", "pieces", etc.
 	LastUpdated time.Time `json:"last_updated"`
 }
 
