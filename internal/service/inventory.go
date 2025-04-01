@@ -9,8 +9,8 @@ import (
 type InventoryRepository interface {
 	GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error)
 	GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
-	DeleteInventoryItemById(ctx context.Context, id int64) error
-	UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) error
+	DeleteInventoryItemById(ctx context.Context, id int64) (int64, error)
+	UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) (int64, error)
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
 }
 
@@ -58,7 +58,7 @@ func (s *InventoryService) GetInventoryItemById(ctx context.Context, InventoryId
 func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId int64) error {
 	const op = "service.DeleteInventoryItemById"
 	// logic here ...
-	err := s.repo.DeleteInventoryItemById(ctx, InventoryId)
+	_, err := s.repo.DeleteInventoryItemById(ctx, InventoryId)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -69,7 +69,7 @@ func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, Inventor
 func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId int64, item entity.InventoryItem) error {
 	const op = "service.UpdateInventoryItemById"
 	// logic here ...
-	err := s.repo.UpdateInventoryItemById(ctx, InventoryId, item)
+	_, err := s.repo.UpdateInventoryItemById(ctx, InventoryId, item)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

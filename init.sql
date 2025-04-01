@@ -27,9 +27,6 @@ CREATE TABLE menu_item_ingredients (
     PRIMARY KEY (menu_item_id, ingredient_id)
 );
 
-
-
-
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
     customer_name TEXT NOT NULL,
@@ -37,8 +34,8 @@ CREATE TABLE orders (
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
     payment_method PAYMENT_METHOD NOT NULL,
     special_instructions JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ 
+    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    updated_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE order_items (

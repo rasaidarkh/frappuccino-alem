@@ -42,11 +42,13 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context) ([]entity.Inv
 	if err != nil {
 		return items, fmt.Errorf("%s: %w", op, err)
 	}
+
 	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
 		return items, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
+
 	for rows.Next() {
 		var item entity.InventoryItem
 		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.LastUpdated)
@@ -55,10 +57,12 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context) ([]entity.Inv
 		}
 		items = append(items, item)
 	}
+
 	err = rows.Err()
 	if err != nil {
 		return items, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return items, nil
 }
 
@@ -66,23 +70,44 @@ func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (en
 	const op = "Store.GetInventoryItemById"
 	var item entity.InventoryItem
 
-	// logic here ...
+	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.LastUpdated)
+	if err != nil {
+		return item, fmt.Errorf("%s: %w", op, err)
+	}
 
 	return item, nil
 }
 
-func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id int64) error {
+func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id int64) (int64, error) {
 	const op = "Store.DeleteInventoryItemById"
 
-	// logic here ...
+	res, err := r.db.ExecContext(ctx, "DELETE FROM inventroy WHERE id = $1", id)
+	if err != nil {
+		return -1, fmt.Errorf("%s: %w", op, err)
+	}
 
-	return nil
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return -1, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return rowsAffected, nil
 }
 
-func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) error {
+func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) (int64, error) {
 	const op = "Store.UpdateInventoryItemById"
 
-	// logic here ...
+	res, err := r.db.ExecContext(ctx,
+		"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, last_updated = $4 WHERE id = $5",
+		item.Name, item.Quantity, item.Unit, item.LastUpdated, id)
+	if err != nil {
+		return -1, fmt.Errorf("%s: %w", op, err)
+	}
 
-	return nil
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return -1, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return rowsAffected, nil
 }
