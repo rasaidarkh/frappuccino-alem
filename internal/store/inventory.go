@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/models"
@@ -110,4 +111,65 @@ func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, 
 	}
 
 	return rowsAffected, nil
+}
+
+func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func(item *entity.InventoryItem) (bool, error)) error {
+	const op = "Store.UpdateInventoryItemById"
+	return runInTx(r.db, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, "SELECT item_name, quantity, unit FROM inventory WHERE id = $1 FOR UPDATE", id)
+
+		var itemName string
+		var quantity float64
+		var unit string
+		err := row.Scan(&itemName, &quantity, &unit)
+		if err != nil {
+			return err
+		}
+
+		item := &entity.InventoryItem{
+			ID:       int(id),
+			Name:     itemName,
+			Quantity: quantity,
+			Unit:     unit,
+		}
+
+		updated, err := updateFn(item)
+		if err != nil {
+			return err
+		}
+
+		if !updated {
+			return nil
+		}
+
+		_, err = tx.ExecContext(ctx, "UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, last_updated = $4 WHERE id = $5",
+			item.Name, item.Quantity, item.Unit, item.LastUpdated, item.ID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func runInTx(db *sql.DB, fn func(tx *sql.Tx) error) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	err = fn(tx)
+	if err == nil {
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+		return nil
+	}
+
+	rollbackErr := tx.Rollback()
+	if rollbackErr != nil {
+		return errors.Join(err, rollbackErr)
+	}
+
+	return err
 }
