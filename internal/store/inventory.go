@@ -40,12 +40,21 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *t
 	const op = "Store.GetAllInventoryItems"
 	var items []entity.InventoryItem
 
+	var totalItems int
+	countQuery := "SELECT COUNT(*) FROM inventory"
+	err := r.db.QueryRowContext(ctx, countQuery).Scan(&totalItems)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to count total items: %w", op, err)
+	}
+
+	maxPages := (totalItems + pagination.PageSize - 1) / pagination.PageSize
+	if pagination.Page > maxPages {
+		return nil, fmt.Errorf("%s: requested page %d exceeds maximum page number %d", op, pagination.Page, maxPages)
+	}
+
 	query := "SELECT * FROM inventory"
-	fmt.Println(pagination)
 	if pagination.SortBy != "" {
 		switch pagination.SortBy {
-		// case types.SortByPrice:
-		// 	query += " ORDER BY price"
 		case types.SortByID:
 			query += " ORDER BY id"
 		case types.SortByQuantity:
