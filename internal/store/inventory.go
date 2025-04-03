@@ -82,7 +82,7 @@ func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (en
 func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id int64) (int64, error) {
 	const op = "Store.DeleteInventoryItemById"
 
-	res, err := r.db.ExecContext(ctx, "DELETE FROM inventroy WHERE id = $1", id)
+	res, err := r.db.ExecContext(ctx, "DELETE FROM inventory WHERE id = $1", id)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}

@@ -58,15 +58,19 @@ func (s *InventoryService) GetInventoryItemById(ctx context.Context, InventoryId
 	return item, nil
 }
 
-func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId int64) error {
+func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
 	const op = "service.DeleteInventoryItemById"
 	// logic here ...
-	_, err := s.repo.DeleteInventoryItemById(ctx, InventoryId)
+	item, err := s.repo.GetInventoryItemById(ctx, InventoryId)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return entity.InventoryItem{}, fmt.Errorf("%s: %w", op, err)
+	}
+	_, err = s.repo.DeleteInventoryItemById(ctx, InventoryId)
+	if err != nil {
+		return entity.InventoryItem{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return item, nil
 }
 
 func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId int64, req types.InventoryItemRequest) error {

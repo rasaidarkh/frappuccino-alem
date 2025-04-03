@@ -16,7 +16,7 @@ type InventoryService interface {
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
 	GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error)
 	GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
-	DeleteInventoryItemById(ctx context.Context, InventoryId int64) error
+	DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
 	UpdateInventoryItemById(ctx context.Context, InventoryId int64, item types.InventoryItemRequest) error
 }
 
@@ -127,6 +127,20 @@ func (h *InventoryHandler) updateInventoryItemById(w http.ResponseWriter, r *htt
 }
 
 func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		h.logger.Error("Cannot convert inventory id to integer value", "error", err.Error())
+		utils.WriteError(w, http.StatusBadRequest, errors.New("Cannot convert inventory id to integer value"))
+		return
+	}
+	item, err := h.service.DeleteInventoryItemById(r.Context(), int64(id))
+	if err != nil {
+		h.logger.Error("Failed to get inventory item", slog.Int("id", id), "error", err.Error())
+		utils.WriteError(w, http.StatusNotFound, errors.New(fmt.Sprintf("Item with id %v not found", id)))
+		return
+	}
+	h.logger.Info("Succeded to delete inventory item", slog.Int("id", item.ID), slog.String("Name", item.Name))
+	utils.WriteJSON(w, http.StatusNotFound, map[string]any{"message": fmt.Sprintf("Deleted inventory item %v", item.Name)})
 }
 
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
