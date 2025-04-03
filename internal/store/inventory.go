@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"frappuccino-alem/internal/entity"
+	"frappuccino-alem/internal/handlers/types"
 	"frappuccino-alem/models"
 )
 
@@ -35,11 +36,35 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 	return id, nil
 }
 
-func (r *InventoryStore) GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error) {
+func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error) {
 	const op = "Store.GetAllInventoryItems"
 	var items []entity.InventoryItem
 
-	stmt, err := r.db.PrepareContext(ctx, "SELECT * FROM inventory")
+	query := "SELECT * FROM inventory"
+	fmt.Println(pagination)
+	if pagination.SortBy != "" {
+		switch pagination.SortBy {
+		// case types.SortByPrice:
+		// 	query += " ORDER BY price"
+		case types.SortByID:
+			query += " ORDER BY id"
+		case types.SortByQuantity:
+			query += " ORDER BY quantity"
+		case types.SortByName:
+			query += " ORDER BY name"
+		case types.SortByDate:
+			query += " ORDER BY last_updated"
+		default:
+			return nil, fmt.Errorf("invalid sort option: %s", pagination.SortBy)
+		}
+	}
+
+	if pagination.Page > 0 && pagination.PageSize > 0 {
+		offset := (pagination.Page - 1) * pagination.PageSize
+		query += fmt.Sprintf(" LIMIT %d OFFSET %d", pagination.PageSize, offset)
+	}
+
+	stmt, err := r.db.PrepareContext(ctx, query)
 	if err != nil {
 		return items, fmt.Errorf("%s: %w", op, err)
 	}

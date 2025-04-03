@@ -10,7 +10,7 @@ import (
 
 type InventoryRepository interface {
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
-	GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error)
+	GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error)
 	GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
 	DeleteInventoryItemById(ctx context.Context, id int64) (int64, error)
 	UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) (int64, error)
@@ -36,10 +36,10 @@ func (s *InventoryService) CreateInventoryItem(ctx context.Context, item entity.
 	return id, nil
 }
 
-func (s *InventoryService) GetAllInventoryItems(ctx context.Context) ([]entity.InventoryItem, error) {
+func (s *InventoryService) GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error) {
 	const op = "service.GetAllInventoryItems"
 	// logic here ...
-	items, err := s.repo.GetAllInventoryItems(ctx)
+	items, err := s.repo.GetAllInventoryItems(ctx, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
