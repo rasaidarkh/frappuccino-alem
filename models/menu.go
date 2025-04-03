@@ -15,6 +15,7 @@ type MenuItem struct {
 	Allergens   pq.StringArray `json:"allergens"`
 	Metadata    JSONB          `json:"metadata"`
 	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type MenuItemIngredient struct {

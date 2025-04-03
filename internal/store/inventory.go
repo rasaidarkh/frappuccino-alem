@@ -22,13 +22,13 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 	const op = "Store.CreateInventoryItem"
 
 	ItemModel := models.Inventory{
-		Name:        item.Name,
-		Quantity:    item.Quantity,
-		Unit:        item.Unit,
-		LastUpdated: item.LastUpdated,
+		Name:      item.Name,
+		Quantity:  item.Quantity,
+		Unit:      item.Unit,
+		CreatedAt: item.CreatedAt,
 	}
 	var id int64
-	row := r.db.QueryRowContext(ctx, "INSERT INTO inventory (item_name,quantity,unit,last_updated) VALUES ($1,$2,$3,$4) RETURNING id", ItemModel.Name, ItemModel.Quantity, ItemModel.Unit, ItemModel.LastUpdated)
+	row := r.db.QueryRowContext(ctx, "INSERT INTO inventory (item_name,quantity,unit,created_at) VALUES ($1,$2,$3,$4) RETURNING id", ItemModel.Name, ItemModel.Quantity, ItemModel.Unit, ItemModel.CreatedAt)
 	err := row.Scan(&id)
 	if err != nil {
 		return -1, err
@@ -55,7 +55,7 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *t
 
 	for rows.Next() {
 		var item entity.InventoryItem
-		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.LastUpdated)
+		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.CreatedAt, &item.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (en
 	const op = "Store.GetInventoryItemById"
 	var item entity.InventoryItem
 
-	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.LastUpdated)
+	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.CreatedAt, &item.UpdatedAt)
 	if err != nil {
 		return item, fmt.Errorf("%s: %w", op, err)
 	}
@@ -110,8 +110,8 @@ func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, 
 	const op = "Store.UpdateInventoryItemById"
 
 	res, err := r.db.ExecContext(ctx,
-		"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, last_updated = $4 WHERE id = $5",
-		item.Name, item.Quantity, item.Unit, item.LastUpdated, id)
+		"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, updated_at = $4 WHERE id = $5",
+		item.Name, item.Quantity, item.Unit, item.UpdatedAt, id)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
@@ -153,8 +153,8 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 			return nil
 		}
 
-		_, err = tx.ExecContext(ctx, "UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, last_updated = $4 WHERE id = $5",
-			item.Name, item.Quantity, item.Unit, item.LastUpdated, item.ID)
+		_, err = tx.ExecContext(ctx, "UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, updated_at = $4 WHERE id = $5",
+			item.Name, item.Quantity, item.Unit, item.UpdatedAt, item.ID)
 		if err != nil {
 			return err
 		}

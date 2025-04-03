@@ -7,7 +7,8 @@ CREATE TABLE inventory (
     item_name TEXT NOT NULL,
     quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0),
     unit TEXT NOT NULL,
-    last_updated TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE menu_items (
@@ -17,7 +18,9 @@ CREATE TABLE menu_items (
     price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
     categories TEXT[] DEFAULT '{}',
     allergens TEXT[] DEFAULT '{}',
-    metadata JSONB DEFAULT '{}'
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE menu_item_ingredients (
@@ -35,7 +38,7 @@ CREATE TABLE orders (
     payment_method PAYMENT_METHOD NOT NULL,
     special_instructions JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(), 
-    updated_at TIMESTAMPTZ NOT NULL
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE order_items (
@@ -68,14 +71,15 @@ CREATE TABLE inventory_transactions (
     inventory_id INT REFERENCES inventory(id)ON DELETE CASCADE  NOT NULL,
     quantity_change DECIMAL(10,2) NOT NULL,
     reason TEXT NOT NULL,
-    transaction_time TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE staff (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     role STAFF_ROLE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Insert mock staff
