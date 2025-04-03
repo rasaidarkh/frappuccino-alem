@@ -5,11 +5,12 @@ import (
 )
 
 type InventoryItem struct {
-	ID          int
-	Name        string
-	Quantity    float64
-	Unit        string
-	LastUpdated time.Time
+	ID        int
+	Name      string
+	Quantity  float64
+	Unit      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type ChangeType int

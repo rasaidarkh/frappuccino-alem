@@ -22,10 +22,11 @@ func (i InventoryItemRequest) MapToInventoryItemEntity() entity.InventoryItem {
 		*i.UnitType = "kg"
 	}
 	return entity.InventoryItem{
-		ID:          -1,
-		Name:        *i.Name,
-		Quantity:    *i.Quantity,
-		Unit:        *i.UnitType,
-		LastUpdated: time.Now(),
+		ID:        -1,
+		Name:      *i.Name,
+		Quantity:  *i.Quantity,
+		Unit:      *i.UnitType,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 }
