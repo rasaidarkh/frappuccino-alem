@@ -38,16 +38,18 @@ func (s *InventoryService) CreateInventoryItem(ctx context.Context, item entity.
 }
 
 func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.InventoryItem], error) {
+	const op = "service.GetPaginatedInventoryItems"
+	
 	totalItems, err := s.repo.GetTotalInventoryCount(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	totalPages := (totalItems + pagination.PageSize - 1) / pagination.PageSize
 
 	items, err := s.repo.GetAllInventoryItems(ctx, pagination)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	response := &types.PaginationResponse[entity.InventoryItem]{
@@ -112,7 +114,7 @@ func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, Inventor
 		}
 
 		if updated {
-			item.LastUpdated = time.Now()
+			item.UpdatedAt = time.Now()
 			return
 		}
 

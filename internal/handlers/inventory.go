@@ -75,25 +75,26 @@ func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Re
 }
 
 func (h *InventoryHandler) getPaginatedInventoryItems(w http.ResponseWriter, r *http.Request) {
-	validSortByOptions := []types.SortOption{
+	pagination, err := types.NewPaginationFromRequest(r, []types.SortOption{
 		types.SortByID,
 		types.SortByName,
 		types.SortByQuantity,
 		types.SortByDate,
-	}
-
-	pagination, err := types.NewPaginationFromRequest(r, validSortByOptions)
+	})
 	if err != nil {
+		h.logger.Error("Failed to parse inventory item pagination request", "error", err.Error())
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	response, err := h.service.GetPaginatedInventoryItems(r.Context(), pagination)
 	if err != nil {
+		h.logger.Error("Failed to get paginated inventory items", slog.Any("pagination", pagination), "error", err.Error())
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-
+	
+	h.logger.Info("Succeded to get inventory items page")
 	utils.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -156,6 +157,26 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 }
 
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
+	// validSortByOptions := []types.SortOption{
+	// 	types.SortByQuantity,
+	// }
+
+	// pagination, err := types.NewPaginationFromRequest(r, validSortByOptions)
+	// if err != nil {
+	// 	h.logger.Error("Invalid query parameters", "error", err.Error())
+	// 	utils.WriteError(w, http.StatusBadRequest, errors.New("Invalid query parameters"))
+	// 	return
+	// }
+
+	// items, err := h.service.GetPaginatedInventoryItems(r.Context(), pagination)
+	// if err != nil {
+	// 	h.logger.Error("Failed to get leftovers", "error", err.Error())
+	// 	utils.WriteError(w, http.StatusInternalServerError, errors.New("Failed to retrieve leftover items"))
+	// 	return
+	// }
+
+	// h.logger.Info("Successfully retrieved leftover items")
+	// utils.WriteJSON(w, http.StatusOK, items)
 }
 
 func validateInventoryItem(item types.InventoryItemRequest) error {
