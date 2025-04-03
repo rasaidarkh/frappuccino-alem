@@ -14,7 +14,7 @@ import (
 
 type InventoryService interface {
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
-	GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error)
+	GetPaginatedInventoryItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.InventoryItem], error)
 	GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
 	DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
 	UpdateInventoryItemById(ctx context.Context, InventoryId int64, item types.InventoryItemRequest) error
@@ -33,8 +33,8 @@ func (h *InventoryHandler) RegisterEndpoints(mux *http.ServeMux) {
 	mux.HandleFunc("POST /inventory", h.createInventoryItem)
 	mux.HandleFunc("POST /inventory/", h.createInventoryItem)
 
-	mux.HandleFunc("GET /inventory", h.getAllInventoryItems)
-	mux.HandleFunc("GET /inventory/", h.getAllInventoryItems)
+	mux.HandleFunc("GET /inventory", h.getPaginatedInventoryItems)
+	mux.HandleFunc("GET /inventory/", h.getPaginatedInventoryItems)
 
 	mux.HandleFunc("GET /inventory/{id}", h.getInventoryItemById)
 	mux.HandleFunc("GET /inventory/{id}/", h.getInventoryItemById)
@@ -74,28 +74,27 @@ func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Re
 	utils.WriteMessage(w, http.StatusCreated, "Created new inventory item")
 }
 
-func (h *InventoryHandler) getAllInventoryItems(w http.ResponseWriter, r *http.Request) {
+func (h *InventoryHandler) getPaginatedInventoryItems(w http.ResponseWriter, r *http.Request) {
 	validSortByOptions := []types.SortOption{
 		types.SortByID,
-		types.SortByDate,
+		types.SortByName,
 		types.SortByQuantity,
+		types.SortByDate,
 	}
 
 	pagination, err := types.NewPaginationFromRequest(r, validSortByOptions)
 	if err != nil {
-		h.logger.Error("Invalid query parameters", "error", err.Error())
-		utils.WriteError(w, http.StatusBadRequest, errors.New("Invalid query parameters"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	items, err := h.service.GetAllInventoryItems(r.Context(), pagination)
+	response, err := h.service.GetPaginatedInventoryItems(r.Context(), pagination)
 	if err != nil {
-		h.logger.Error("Failed to get all inventory items", "error", err.Error())
-		utils.WriteError(w, http.StatusInternalServerError, errors.New("Failed to retrieve inventory items"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	h.logger.Info("Succeeded to get all inventory items")
-	utils.WriteJSON(w, http.StatusOK, items)
+
+	utils.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *InventoryHandler) getInventoryItemById(w http.ResponseWriter, r *http.Request) {

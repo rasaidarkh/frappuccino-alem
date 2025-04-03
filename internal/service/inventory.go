@@ -11,6 +11,7 @@ import (
 type InventoryRepository interface {
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
 	GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error)
+	GetTotalInventoryCount(ctx context.Context) (int, error)
 	GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
 	DeleteInventoryItemById(ctx context.Context, id int64) (int64, error)
 	UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) (int64, error)
@@ -36,15 +37,28 @@ func (s *InventoryService) CreateInventoryItem(ctx context.Context, item entity.
 	return id, nil
 }
 
-func (s *InventoryService) GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error) {
-	const op = "service.GetAllInventoryItems"
-	// logic here ...
-	items, err := s.repo.GetAllInventoryItems(ctx, pagination)
+func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.InventoryItem], error) {
+	totalItems, err := s.repo.GetTotalInventoryCount(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, err
 	}
 
-	return items, nil
+	totalPages := (totalItems + pagination.PageSize - 1) / pagination.PageSize
+
+	items, err := s.repo.GetAllInventoryItems(ctx, pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &types.PaginationResponse[entity.InventoryItem]{
+		CurrentPage: pagination.Page,
+		HasNextPage: pagination.Page < totalPages,
+		PageSize:    pagination.PageSize,
+		TotalPages:  totalPages,
+		Data:        items,
+	}
+
+	return response, nil
 }
 
 func (s *InventoryService) GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {

@@ -37,50 +37,19 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 }
 
 func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error) {
-	const op = "Store.GetAllInventoryItems"
 	var items []entity.InventoryItem
-
-	var totalItems int
-	countQuery := "SELECT COUNT(*) FROM inventory"
-	err := r.db.QueryRowContext(ctx, countQuery).Scan(&totalItems)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to count total items: %w", op, err)
-	}
-
-	maxPages := (totalItems + pagination.PageSize - 1) / pagination.PageSize
-	if pagination.Page > maxPages {
-		return nil, fmt.Errorf("%s: requested page %d exceeds maximum page number %d", op, pagination.Page, maxPages)
-	}
-
 	query := "SELECT * FROM inventory"
+
 	if pagination.SortBy != "" {
-		switch pagination.SortBy {
-		case types.SortByID:
-			query += " ORDER BY id"
-		case types.SortByQuantity:
-			query += " ORDER BY quantity"
-		case types.SortByName:
-			query += " ORDER BY name"
-		case types.SortByDate:
-			query += " ORDER BY last_updated"
-		default:
-			return nil, fmt.Errorf("invalid sort option: %s", pagination.SortBy)
-		}
+		query += fmt.Sprintf(" ORDER BY %s", pagination.SortBy)
 	}
 
-	if pagination.Page > 0 && pagination.PageSize > 0 {
-		offset := (pagination.Page - 1) * pagination.PageSize
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", pagination.PageSize, offset)
-	}
+	offset := (pagination.Page - 1) * pagination.PageSize
+	query += fmt.Sprintf(" LIMIT %d OFFSET %d", pagination.PageSize, offset)
 
-	stmt, err := r.db.PrepareContext(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
-		return items, fmt.Errorf("%s: %w", op, err)
-	}
-
-	rows, err := stmt.QueryContext(ctx)
-	if err != nil {
-		return items, fmt.Errorf("%s: %w", op, err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -88,17 +57,25 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *t
 		var item entity.InventoryItem
 		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.LastUpdated)
 		if err != nil {
-			return items, fmt.Errorf("%s: %w", op, err)
+			return nil, err
 		}
 		items = append(items, item)
 	}
 
-	err = rows.Err()
-	if err != nil {
-		return items, fmt.Errorf("%s: %w", op, err)
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return items, nil
+}
+
+func (r *InventoryStore) GetTotalInventoryCount(ctx context.Context) (int, error) {
+	var total int
+	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM inventory").Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
 }
 
 func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error) {
