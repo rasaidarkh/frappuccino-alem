@@ -51,7 +51,8 @@ func (h *MenuHandler) getPaginatedMenuItems(w http.ResponseWriter, r *http.Reque
 		types.SortByID,
 		types.SortByName,
 		types.SortByPrice,
-		types.SortByDate,
+		types.SortByCreatedAt,
+		types.SortByUpdatedAt,
 	})
 	if err != nil {
 		h.logger.Error("Failed to parse menu item pagination request", "error", err.Error())

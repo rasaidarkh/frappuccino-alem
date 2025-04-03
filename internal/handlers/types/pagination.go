@@ -10,11 +10,12 @@ import (
 type SortOption string
 
 const (
-	SortByID       SortOption = "id"
-	SortByPrice    SortOption = "price"
-	SortByQuantity SortOption = "quantity"
-	SortByName     SortOption = "name"
-	SortByDate     SortOption = "date"
+	SortByID        SortOption = "id"
+	SortByPrice     SortOption = "price"
+	SortByQuantity  SortOption = "quantity"
+	SortByName      SortOption = "name"
+	SortByCreatedAt SortOption = "created_at"
+	SortByUpdatedAt SortOption = "updated_at"
 )
 
 type Pagination struct {

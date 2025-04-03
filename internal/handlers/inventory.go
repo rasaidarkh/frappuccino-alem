@@ -79,7 +79,8 @@ func (h *InventoryHandler) getPaginatedInventoryItems(w http.ResponseWriter, r *
 		types.SortByID,
 		types.SortByName,
 		types.SortByQuantity,
-		types.SortByDate,
+		types.SortByCreatedAt,
+		types.SortByUpdatedAt,
 	})
 	if err != nil {
 		h.logger.Error("Failed to parse inventory item pagination request", "error", err.Error())
