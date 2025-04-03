@@ -71,7 +71,7 @@ func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Re
 		return
 	}
 	h.logger.Info("Succeeded to create new inventory item", slog.Int64("id", id))
-	utils.WriteJSON(w, http.StatusCreated, map[string]any{"message": "Created new inventory item"})
+	utils.WriteMessage(w, http.StatusCreated, "Created new inventory item")
 }
 
 func (h *InventoryHandler) getAllInventoryItems(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +123,7 @@ func (h *InventoryHandler) updateInventoryItemById(w http.ResponseWriter, r *htt
 		return
 	}
 	h.logger.Info("Succeeded to update inventory item", slog.Int("id", id))
-	utils.WriteJSON(w, http.StatusOK, map[string]any{"message": "Updated inventory item"})
+	utils.WriteMessage(w, http.StatusOK, "Updated inventory item")
 }
 
 func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +140,7 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 		return
 	}
 	h.logger.Info("Succeded to delete inventory item", slog.Int("id", item.ID), slog.String("Name", item.Name))
-	utils.WriteJSON(w, http.StatusNotFound, map[string]any{"message": fmt.Sprintf("Deleted inventory item %v", item.Name)})
+	utils.WriteMessage(w, http.StatusNotFound, fmt.Sprintf("Deleted inventory item %v", item.Name))
 }
 
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
