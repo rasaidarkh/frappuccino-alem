@@ -9,6 +9,7 @@ type InventoryItem struct {
 	Name      string
 	Quantity  float64
 	Unit      string
+	Price     float64
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

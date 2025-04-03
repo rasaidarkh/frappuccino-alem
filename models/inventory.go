@@ -5,10 +5,11 @@ import (
 )
 
 type Inventory struct {
-	ID        int64      `json:"id"`
-	Name      string     `json:"item_name"`
-	Quantity  float64    `json:"quantity"` // Supports fractional amounts (e.g., 0.5 kg)
-	Unit      string     `json:"unit"`     // "kg", "liters", "pieces", etc.
+	ID        int64   `json:"id"`
+	Name      string  `json:"item_name"`
+	Quantity  float64 `json:"quantity"` // Supports fractional amounts (e.g., 0.5 kg)
+	Unit      string  `json:"unit"`     // "kg", "liters", "pieces", etc.
+	Price     float64
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
 }

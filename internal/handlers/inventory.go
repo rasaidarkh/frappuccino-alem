@@ -94,7 +94,7 @@ func (h *InventoryHandler) getPaginatedInventoryItems(w http.ResponseWriter, r *
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	
+
 	h.logger.Info("Succeded to get inventory items page")
 	utils.WriteJSON(w, http.StatusOK, response)
 }
@@ -158,26 +158,27 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 }
 
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
-	// validSortByOptions := []types.SortOption{
-	// 	types.SortByQuantity,
-	// }
+	validSortByOptions := []types.SortOption{
+		types.SortByQuantity,
+		types.SortByPrice,
+	}
 
-	// pagination, err := types.NewPaginationFromRequest(r, validSortByOptions)
-	// if err != nil {
-	// 	h.logger.Error("Invalid query parameters", "error", err.Error())
-	// 	utils.WriteError(w, http.StatusBadRequest, errors.New("Invalid query parameters"))
-	// 	return
-	// }
+	pagination, err := types.NewPaginationFromRequest(r, validSortByOptions)
+	if err != nil {
+		h.logger.Error("Invalid query parameters", "error", err.Error())
+		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid query parameters"))
+		return
+	}
 
-	// items, err := h.service.GetPaginatedInventoryItems(r.Context(), pagination)
-	// if err != nil {
-	// 	h.logger.Error("Failed to get leftovers", "error", err.Error())
-	// 	utils.WriteError(w, http.StatusInternalServerError, errors.New("Failed to retrieve leftover items"))
-	// 	return
-	// }
+	response, err := h.service.GetPaginatedInventoryItems(r.Context(), pagination)
+	if err != nil {
+		h.logger.Error("Failed to get leftovers", "error", err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, errors.New("failed to retrieve leftover items"))
+		return
+	}
 
-	// h.logger.Info("Successfully retrieved leftover items")
-	// utils.WriteJSON(w, http.StatusOK, items)
+	h.logger.Info("Successfully retrieved leftover items")
+	utils.WriteJSON(w, http.StatusOK, response)
 }
 
 func validateInventoryItem(item types.InventoryItemRequest) error {
@@ -199,6 +200,13 @@ func validateInventoryItem(item types.InventoryItemRequest) error {
 	}
 	if *item.UnitType == "" {
 		return errors.New("unit type cannot be empty")
+	}
+
+	if item.Price == nil {
+		return errors.New("item price is required")
+	}
+	if *item.Price <= 0 {
+		return errors.New("price must be greater than zero")
 	}
 	return nil
 }

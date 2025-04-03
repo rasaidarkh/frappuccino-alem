@@ -25,18 +25,22 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 		Name:      item.Name,
 		Quantity:  item.Quantity,
 		Unit:      item.Unit,
+		Price:     item.Price,
 		CreatedAt: item.CreatedAt,
 	}
 	var id int64
-	row := r.db.QueryRowContext(ctx, "INSERT INTO inventory (item_name,quantity,unit,created_at) VALUES ($1,$2,$3,$4) RETURNING id", ItemModel.Name, ItemModel.Quantity, ItemModel.Unit, ItemModel.CreatedAt)
+	row := r.db.QueryRowContext(ctx,
+		"INSERT INTO inventory (item_name,quantity,unit,price,created_at) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+		ItemModel.Name, ItemModel.Quantity, ItemModel.Unit, ItemModel.Price, ItemModel.CreatedAt)
 	err := row.Scan(&id)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 	return id, nil
 }
 
 func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error) {
+	const op = "Store.GetAllInventoryItems"
 	var items []entity.InventoryItem
 	query := "SELECT * FROM inventory"
 
@@ -49,21 +53,21 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *t
 
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var item entity.InventoryItem
-		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.CreatedAt, &item.UpdatedAt)
+		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.Price, &item.CreatedAt, &item.UpdatedAt)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		items = append(items, item)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return items, nil
@@ -82,7 +86,15 @@ func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (en
 	const op = "Store.GetInventoryItemById"
 	var item entity.InventoryItem
 
-	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.CreatedAt, &item.UpdatedAt)
+	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(
+		&item.ID,
+		&item.Name,
+		&item.Quantity,
+		&item.Unit,
+		&item.Price,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
 	if err != nil {
 		return item, fmt.Errorf("%s: %w", op, err)
 	}
@@ -110,8 +122,8 @@ func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, 
 	const op = "Store.UpdateInventoryItemById"
 
 	res, err := r.db.ExecContext(ctx,
-		"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, updated_at = $4 WHERE id = $5",
-		item.Name, item.Quantity, item.Unit, item.UpdatedAt, id)
+		"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, price = $4, updated_at = $5 WHERE id = $6",
+		item.Name, item.Quantity, item.Unit, item.Price, item.UpdatedAt, id)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
@@ -132,7 +144,8 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 		var itemName string
 		var quantity float64
 		var unit string
-		err := row.Scan(&itemName, &quantity, &unit)
+		var price float64
+		err := row.Scan(&itemName, &quantity, &unit, &price)
 		if err != nil {
 			return err
 		}
@@ -142,6 +155,7 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 			Name:     itemName,
 			Quantity: quantity,
 			Unit:     unit,
+			Price:    price,
 		}
 
 		updated, err := updateFn(item)
@@ -153,10 +167,11 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 			return nil
 		}
 
-		_, err = tx.ExecContext(ctx, "UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, updated_at = $4 WHERE id = $5",
-			item.Name, item.Quantity, item.Unit, item.UpdatedAt, item.ID)
+		_, err = tx.ExecContext(ctx,
+			"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, price = $4, updated_at = $5 WHERE id = $6",
+			item.Name, item.Quantity, item.Unit, item.Price, item.UpdatedAt, item.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		return nil
