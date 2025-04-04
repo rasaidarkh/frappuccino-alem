@@ -5,19 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/types"
+	"frappuccino-alem/internal/handlers/dto"
 	"frappuccino-alem/internal/store"
 	"frappuccino-alem/internal/utils"
 	"log/slog"
 	"net/http"
+	"strconv"
 )
 
 type MenuService interface {
-	CreateMenuItem(ctx context.Context, item entity.MenuItem) (string, error)
-	GetPaginatedMenuItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.MenuItem], error)
-	GetMenuItemById(ctx context.Context, id string) (entity.MenuItem, error)
-	UpdateMenuItemById(ctx context.Context, id string, item entity.MenuItem) error
-	DeleteMenuItemById(ctx context.Context, id string) error
+	CreateMenuItem(ctx context.Context, item entity.MenuItem) (int64, error)
+	GetPaginatedMenuItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.MenuItem], error)
+	GetMenuItemById(ctx context.Context, id int64) (entity.MenuItem, error)
+	UpdateMenuItemById(ctx context.Context, id int64, item entity.MenuItem) error
+	DeleteMenuItemById(ctx context.Context, id int64) error
 }
 
 type MenuHandler struct {
@@ -47,95 +48,101 @@ func (h *MenuHandler) RegisterEndpoints(mux *http.ServeMux) {
 }
 
 func (h *MenuHandler) createMenuItem(w http.ResponseWriter, r *http.Request) {
-	var dto types.MenuItemCreateRequest
-	if err := utils.ParseJSON(r, &dto); err != nil {
-		h.logger.Error("Failed to parse request body", "error", err.Error())
+	var req dto.MenuItemCreateRequest
+	if err := utils.ParseJSON(r, &req); err != nil {
+		h.logError("Failed to parse request body", err)
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	// add validation
-	entityItem := dto.ToEntity()
+
+	if err := validateMenuItemIngredients(req.Ingredients); err != nil {
+		h.logError("Invalid ingredients", err)
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	entityItem := req.ToEntity()
 	id, err := h.service.CreateMenuItem(r.Context(), entityItem)
 	if err != nil {
-		h.logger.Error("Failed to create menu item", "error", err.Error())
+		h.logError("Failed to create menu item", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, map[string]string{"id": id})
+	utils.WriteJSON(w, http.StatusCreated, dto.CreatedResponse{ID: id})
 }
 
 func (h *MenuHandler) getPaginatedMenuItems(w http.ResponseWriter, r *http.Request) {
-	pagination, err := types.NewPaginationFromRequest(r, []types.SortOption{
-		types.SortByID,
-		types.SortByName,
-		types.SortByPrice,
-		types.SortByCreatedAt,
-		types.SortByUpdatedAt,
+	pagination, err := dto.NewPaginationFromRequest(r, []dto.SortOption{
+		dto.SortByID,
+		dto.SortByName,
+		dto.SortByPrice,
+		dto.SortByCreatedAt,
+		dto.SortByUpdatedAt,
 	})
 	if err != nil {
-		h.logger.Error("Failed to parse menu item pagination request", "error", err.Error())
+		h.logError("Invalid pagination request", err)
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	response, err := h.service.GetPaginatedMenuItems(r.Context(), pagination)
 	if err != nil {
-		h.logger.Error("Failed to get paginated menu items", slog.Any("pagination", pagination), "error", err.Error())
+		h.logError("Failed to get menu items", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	h.logger.Info("Succeded to get menu items page")
 	utils.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *MenuHandler) getMenuItemById(w http.ResponseWriter, r *http.Request) {
-
-	id := r.PathValue("id")
-	if id == "" {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("missing menu item ID"))
-		return
-	}
-
-	item, err := h.service.GetMenuItemById(r.Context(), id)
+	id, err := parsePathID(r, "id")
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			utils.WriteError(w, http.StatusNotFound, fmt.Errorf("menu item not found"))
-			return
-		}
-		h.logger.Error("Failed to get menu item", "id", id, "error", err.Error())
-		utils.WriteError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	utils.WriteJSON(w, http.StatusOK, item)
-}
-
-func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	if id == "" {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("missing menu item ID"))
-		return
-	}
-	var dto types.MenuItemUpdateRequest
-	if err := utils.ParseJSON(r, &dto); err != nil {
-		h.logger.Error("Failed to parse request body", "error", err.Error())
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	if dto.Name == nil && dto.Description == nil && dto.Price == nil &&
-		dto.Categories == nil && dto.Allergens == nil &&
-		dto.Metadata == nil && dto.Ingredients == nil {
+	entityItem, err := h.service.GetMenuItemById(r.Context(), id)
+	if err != nil {
+		h.handleNotFoundOrError(w, "menu item", id, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, dto.ToMenuItemResponse(entityItem))
+}
+
+func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request) {
+	id, err := parsePathID(r, "id")
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	var req dto.MenuItemUpdateRequest
+	if err := utils.ParseJSON(r, &req); err != nil {
+		h.logError("Failed to parse request body", err)
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if req.IsEmpty() {
 		utils.WriteError(w, http.StatusBadRequest, errors.New("at least one field must be provided"))
 		return
 	}
 
-	entityItem := dto.ToEntity()
-	if err := h.service.UpdateMenuItemById(r.Context(), id, entityItem); err != nil {
-		h.logger.Error("Failed to update menu item", "id", id, "error", err.Error())
-		utils.WriteError(w, http.StatusInternalServerError, err)
+	if req.Ingredients != nil {
+		for _, ing := range *req.Ingredients {
+			if ing.QuantityUsed <= 0 {
+				utils.WriteError(w, http.StatusBadRequest,
+					fmt.Errorf("quantity_used must be greater than 0"))
+				return
+			}
+		}
+	}
+
+	if err := h.service.UpdateMenuItemById(r.Context(), id, req.ToEntity()); err != nil {
+		h.handleNotFoundOrError(w, "menu item", id, err)
 		return
 	}
 
@@ -143,21 +150,52 @@ func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *MenuHandler) deleteMenuItemById(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	if id == "" {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("missing menu item ID"))
+	id, err := parsePathID(r, "id")
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := h.service.DeleteMenuItemById(r.Context(), id); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			utils.WriteError(w, http.StatusNotFound, fmt.Errorf("menu item not found"))
-			return
-		}
-		h.logger.Error("Failed to delete menu item", "id", id, "error", err.Error())
-		utils.WriteError(w, http.StatusInternalServerError, err)
+		h.handleNotFoundOrError(w, "menu item", id, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Helper functions
+func (h *MenuHandler) logError(message string, err error) {
+	h.logger.Error(message, "error", err.Error())
+}
+
+func (h *MenuHandler) handleNotFoundOrError(w http.ResponseWriter, resourceType string, id int64, err error) {
+	if errors.Is(err, store.ErrNotFound) {
+		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("%s with ID %d not found", resourceType, id))
+		return
+	}
+	h.logError(fmt.Sprintf("Failed to process %s", resourceType), err)
+	utils.WriteError(w, http.StatusInternalServerError, err)
+}
+
+func parsePathID(r *http.Request, param string) (int64, error) {
+	idStr := r.PathValue(param)
+	if idStr == "" {
+		return 0, fmt.Errorf("missing %s ID", param)
+	}
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid ID format: must be integer")
+	}
+	return id, nil
+}
+
+func validateMenuItemIngredients(ingredients []dto.MenuItemIngredientDTO) error {
+	for _, ing := range ingredients {
+		if ing.QuantityUsed <= 0 {
+			return fmt.Errorf("invalid quantity_used: must be greater than 0")
+		}
+	}
+	return nil
 }

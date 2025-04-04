@@ -1,4 +1,4 @@
-package types
+package dto
 
 import (
 	"frappuccino-alem/internal/entity"

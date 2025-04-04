@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/types"
+	"frappuccino-alem/internal/handlers/dto"
 	"frappuccino-alem/models"
 )
 
@@ -39,7 +39,7 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 	return id, nil
 }
 
-func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error) {
+func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *dto.Pagination) ([]entity.InventoryItem, error) {
 	const op = "Store.GetAllInventoryItems"
 	var items []entity.InventoryItem
 	query := "SELECT * FROM inventory"

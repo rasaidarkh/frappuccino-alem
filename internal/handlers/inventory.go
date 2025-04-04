@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/types"
+	"frappuccino-alem/internal/handlers/dto"
 	"frappuccino-alem/internal/utils"
 	"log/slog"
 	"net/http"
@@ -14,10 +14,10 @@ import (
 
 type InventoryService interface {
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
-	GetPaginatedInventoryItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.InventoryItem], error)
+	GetPaginatedInventoryItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.InventoryItem], error)
 	GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
 	DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
-	UpdateInventoryItemById(ctx context.Context, InventoryId int64, item types.InventoryItemRequest) error
+	UpdateInventoryItemById(ctx context.Context, InventoryId int64, item dto.InventoryItemRequest) error
 }
 
 type InventoryHandler struct {
@@ -49,7 +49,7 @@ func (h *InventoryHandler) RegisterEndpoints(mux *http.ServeMux) {
 }
 
 func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Request) {
-	var item types.InventoryItemRequest
+	var item dto.InventoryItemRequest
 	if err := utils.ParseJSON(r, &item); err != nil {
 		h.logger.Error("Failed to parse inventory item request", "error", err.Error())
 		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid request payload"))
@@ -75,12 +75,12 @@ func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Re
 }
 
 func (h *InventoryHandler) getPaginatedInventoryItems(w http.ResponseWriter, r *http.Request) {
-	pagination, err := types.NewPaginationFromRequest(r, []types.SortOption{
-		types.SortByID,
-		types.SortByName,
-		types.SortByQuantity,
-		types.SortByCreatedAt,
-		types.SortByUpdatedAt,
+	pagination, err := dto.NewPaginationFromRequest(r, []dto.SortOption{
+		dto.SortByID,
+		dto.SortByName,
+		dto.SortByQuantity,
+		dto.SortByCreatedAt,
+		dto.SortByUpdatedAt,
 	})
 	if err != nil {
 		h.logger.Error("Failed to parse inventory item pagination request", "error", err.Error())
@@ -123,7 +123,7 @@ func (h *InventoryHandler) updateInventoryItemById(w http.ResponseWriter, r *htt
 		utils.WriteError(w, http.StatusBadRequest, errors.New("Cannot convert inventory id to integer value"))
 		return
 	}
-	var itemRequest types.InventoryItemRequest
+	var itemRequest dto.InventoryItemRequest
 	if err := utils.ParseJSON(r, &itemRequest); err != nil {
 		h.logger.Error("Failed to parse inventory item request", "error", err.Error())
 		utils.WriteError(w, http.StatusBadRequest, errors.New("Invalid request payload"))
@@ -158,12 +158,12 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 }
 
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {
-	validSortByOptions := []types.SortOption{
-		types.SortByQuantity,
-		types.SortByPrice,
+	validSortByOptions := []dto.SortOption{
+		dto.SortByQuantity,
+		dto.SortByPrice,
 	}
 
-	pagination, err := types.NewPaginationFromRequest(r, validSortByOptions)
+	pagination, err := dto.NewPaginationFromRequest(r, validSortByOptions)
 	if err != nil {
 		h.logger.Error("Invalid query parameters", "error", err.Error())
 		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid query parameters"))
@@ -181,7 +181,7 @@ func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) 
 	utils.WriteJSON(w, http.StatusOK, response)
 }
 
-func validateInventoryItem(item types.InventoryItemRequest) error {
+func validateInventoryItem(item dto.InventoryItemRequest) error {
 	if item.Name == nil {
 		return errors.New("item name is required")
 	}

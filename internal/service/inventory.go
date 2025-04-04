@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/types"
+	"frappuccino-alem/internal/handlers/dto"
 	"time"
 )
 
 type InventoryRepository interface {
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
-	GetAllInventoryItems(ctx context.Context, pagination *types.Pagination) ([]entity.InventoryItem, error)
+	GetAllInventoryItems(ctx context.Context, pagination *dto.Pagination) ([]entity.InventoryItem, error)
 	GetTotalInventoryCount(ctx context.Context) (int, error)
 	GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
 	DeleteInventoryItemById(ctx context.Context, id int64) (int64, error)
@@ -37,7 +37,7 @@ func (s *InventoryService) CreateInventoryItem(ctx context.Context, item entity.
 	return id, nil
 }
 
-func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.InventoryItem], error) {
+func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.InventoryItem], error) {
 	const op = "service.GetPaginatedInventoryItems"
 
 	totalItems, err := s.repo.GetTotalInventoryCount(ctx)
@@ -52,7 +52,7 @@ func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagin
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	response := &types.PaginationResponse[entity.InventoryItem]{
+	response := &dto.PaginationResponse[entity.InventoryItem]{
 		CurrentPage: pagination.Page,
 		HasNextPage: pagination.Page < totalPages,
 		PageSize:    pagination.PageSize,
@@ -89,7 +89,7 @@ func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, Inventor
 	return item, nil
 }
 
-func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId int64, req types.InventoryItemRequest) error {
+func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId int64, req dto.InventoryItemRequest) error {
 	const op = "service.UpdateInventoryItemById"
 	return s.repo.UpdateByID(ctx, int64(InventoryId), func(item *entity.InventoryItem) (updated bool, err error) {
 		if req.Name != nil {

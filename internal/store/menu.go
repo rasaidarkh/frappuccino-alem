@@ -6,10 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/types"
+	"frappuccino-alem/internal/handlers/dto"
 	"frappuccino-alem/models"
 	"frappuccino-alem/models/mapper"
-	"strconv"
 	"strings"
 )
 
@@ -23,13 +22,13 @@ func NewMenuStore(db *sql.DB) *MenuStore {
 	return &MenuStore{db}
 }
 
-func (s *MenuStore) CreateMenuItem(ctx context.Context, item entity.MenuItem) (string, error) {
+func (s *MenuStore) CreateMenuItem(ctx context.Context, item entity.MenuItem) (int64, error) {
 	const op = "Store.CreateMenuItem"
 
 	modelItem := mapper.ToMenuItemModel(item)
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 	defer func() {
 		if err != nil {
@@ -37,7 +36,7 @@ func (s *MenuStore) CreateMenuItem(ctx context.Context, item entity.MenuItem) (s
 		}
 	}()
 
-	var id string
+	var id int64
 	err = tx.QueryRowContext(ctx,
 		`INSERT INTO menu_items (name, description, price, categories, allergens, metadata)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -46,7 +45,7 @@ func (s *MenuStore) CreateMenuItem(ctx context.Context, item entity.MenuItem) (s
 		modelItem.Categories, modelItem.Allergens, modelItem.Metadata,
 	).Scan(&id)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if len(item.Ingredients) > 0 {
@@ -63,18 +62,18 @@ func (s *MenuStore) CreateMenuItem(ctx context.Context, item entity.MenuItem) (s
 				 VALUES %s`, strings.Join(valueStrings, ",")),
 			valueArgs...)
 		if err != nil {
-			return "", fmt.Errorf("%s: %w", op, err)
+			return -1, fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return id, nil
 }
 
-func (s *MenuStore) GetAllMenuItems(ctx context.Context, pagination *types.Pagination) ([]entity.MenuItem, error) {
+func (s *MenuStore) GetAllMenuItems(ctx context.Context, pagination *dto.Pagination) ([]entity.MenuItem, error) {
 	const op = "Store.GetAllMenuItems"
 
 	query := `
@@ -190,7 +189,7 @@ func (s *MenuStore) GetTotalMenuCount(ctx context.Context) (int, error) {
 	return total, nil
 }
 
-func (s *MenuStore) GetMenuItemById(ctx context.Context, id string) (entity.MenuItem, error) {
+func (s *MenuStore) GetMenuItemById(ctx context.Context, id int64) (entity.MenuItem, error) {
 	const op = "Store.GetMenuItemById"
 
 	var model models.MenuItem
@@ -226,14 +225,8 @@ func (s *MenuStore) GetMenuItemById(ctx context.Context, id string) (entity.Menu
 	return mapper.ToMenuItemEntity(model, ingredients), nil
 }
 
-func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id string, item entity.MenuItem) error {
+func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id int64, item entity.MenuItem) error {
 	const op = "Store.UpdateMenuItemById"
-
-	modelItem := mapper.ToMenuItemModel(item)
-	menuItemID, err := strconv.Atoi(id)
-	if err != nil {
-		return fmt.Errorf("%s: invalid ID: %w", op, err)
-	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -245,28 +238,53 @@ func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id string, item enti
 		}
 	}()
 
-	_, err = tx.ExecContext(ctx, `
-		UPDATE menu_items 
-		SET name = $1, description = $2, price = $3, 
-			categories = $4, allergens = $5, metadata = $6,
-			updated_at = NOW()
-		WHERE id = $7`,
+	// First check if menu item exists
+	var exists bool
+	err = tx.QueryRowContext(ctx,
+		"SELECT EXISTS(SELECT 1 FROM menu_items WHERE id = $1)",
+		id,
+	).Scan(&exists)
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !exists {
+		return fmt.Errorf("%s: %w", op, ErrNotFound)
+	}
+
+	modelItem := mapper.ToMenuItemModel(item)
+	result, err := tx.ExecContext(ctx, `
+        UPDATE menu_items 
+        SET name = $1, description = $2, price = $3, 
+            categories = $4, allergens = $5, metadata = $6,
+            updated_at = NOW()
+        WHERE id = $7`,
 		modelItem.Name,
 		modelItem.Description,
 		modelItem.Price,
 		modelItem.Categories,
 		modelItem.Allergens,
 		modelItem.Metadata,
-		menuItemID,
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	// Verify that the update affected at least one row
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("%s: %w", op, ErrNotFound)
+	}
+
+	// Rest of the transaction remains the same...
 	_, err = tx.ExecContext(ctx, `
-		DELETE FROM menu_item_ingredients 
-		WHERE menu_item_id = $1`,
-		menuItemID,
+        DELETE FROM menu_item_ingredients 
+        WHERE menu_item_id = $1`,
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -278,8 +296,11 @@ func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id string, item enti
 		args := make([]interface{}, 0, len(item.Ingredients)*3)
 
 		for i, ing := range item.Ingredients {
+			if ing.QuantityUsed <= 0 {
+				return fmt.Errorf("%s: quantity_used must be greater than 0", op)
+			}
 			values = append(values, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
-			args = append(args, menuItemID, ing.ID, ing.QuantityUsed)
+			args = append(args, id, ing.ID, ing.QuantityUsed)
 		}
 
 		_, err = tx.ExecContext(ctx, query+strings.Join(values, ","), args...)
@@ -295,7 +316,7 @@ func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id string, item enti
 	return nil
 }
 
-func (s *MenuStore) DeleteMenuItemById(ctx context.Context, id string) error {
+func (s *MenuStore) DeleteMenuItemById(ctx context.Context, id int64) error {
 	const op = "Store.DeleteMenuItemById"
 
 	result, err := s.db.ExecContext(ctx, "DELETE FROM menu_items WHERE id = $1", id)

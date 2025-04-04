@@ -1,4 +1,4 @@
-package types
+package dto
 
 import (
 	"errors"
@@ -25,11 +25,11 @@ type Pagination struct {
 }
 
 type PaginationResponse[T any] struct {
-	CurrentPage int    `json:"current_page"`
-	HasNextPage bool   `json:"has_next_page"`
-	PageSize    int    `json:"page_size"`
-	TotalPages  int    `json:"total_pages"`
-	Data        []T    `json:"data"`
+	CurrentPage int  `json:"current_page"`
+	HasNextPage bool `json:"has_next_page"`
+	PageSize    int  `json:"page_size"`
+	TotalPages  int  `json:"total_pages"`
+	Data        []T  `json:"data"`
 }
 
 func NewPagination(page, pageSize int, sortBy SortOption) *Pagination {
