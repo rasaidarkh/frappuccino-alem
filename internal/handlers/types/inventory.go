@@ -13,9 +13,9 @@ type InventoryItemRequest struct {
 
 func (r InventoryItemRequest) MapToInventoryItemEntity() entity.InventoryItem {
 	return entity.InventoryItem{
-		Name:     *r.Name,
-		Quantity: *r.Quantity,
-		Unit:     *r.UnitType,
-		Price:    *r.Price,
+		ItemName:     *r.Name,
+		QuantityUsed: *r.Quantity,
+		Unit:         *r.UnitType,
+		Price:        *r.Price,
 	}
 }

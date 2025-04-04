@@ -7,7 +7,7 @@ import (
 )
 
 type MenuItem struct {
-	ID          int            `json:"id"`
+	ID          int64          `json:"id"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
 	Price       float64        `json:"price"`
@@ -19,15 +19,15 @@ type MenuItem struct {
 }
 
 type MenuItemIngredient struct {
-	ID               int64   `json:"id"`
-	MenuItemID       int64   `json:"menu_item_id"`
-	InventoryID      int64   `json:"inventory_id"`
-	QuantityRequired float64 `json:"quantity_required"` // Amount needed per recipe
+	ID           int64   `json:"id"`
+	MenuItemID   int64   `json:"menu_item_id"`
+	InventoryID  int64   `json:"inventory_id"`
+	QuantityUsed float64 `json:"quantity_used"`
 }
 
 type PriceHistory struct {
-	ID         int       `json:"id"`
-	MenuItemId int       `json:"menu_item_id"`
+	ID         int64     `json:"id"`
+	MenuItemId int64     `json:"menu_item_id"`
 	OldPrice   float64   `json:"old_price"`
 	NewPrice   float64   `json:"new_price"`
 	CreatedAt  time.Time `json:"created_at"`

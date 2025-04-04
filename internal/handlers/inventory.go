@@ -112,7 +112,7 @@ func (h *InventoryHandler) getInventoryItemById(w http.ResponseWriter, r *http.R
 		utils.WriteError(w, http.StatusNotFound, errors.New(fmt.Sprintf("Item with id %v not found", id)))
 		return
 	}
-	h.logger.Info("Succeded to get inventory item - ", slog.Int("id", item.ID), slog.String("Name", item.Name))
+	h.logger.Info("Succeded to get inventory item - ", slog.Int64("id", item.ID), slog.String("Name", item.ItemName))
 	utils.WriteJSON(w, http.StatusOK, item)
 }
 
@@ -129,7 +129,7 @@ func (h *InventoryHandler) updateInventoryItemById(w http.ResponseWriter, r *htt
 		utils.WriteError(w, http.StatusBadRequest, errors.New("Invalid request payload"))
 		return
 	}
-	h.logger.Debug("itemRequest", itemRequest)
+	h.logger.Debug("update request ", "itemRequest", itemRequest)
 	err = h.service.UpdateInventoryItemById(r.Context(), int64(id), itemRequest)
 	if err != nil {
 		h.logger.Error("Failed to update inventory item", slog.Int("id", id), "error", err.Error())
@@ -153,8 +153,8 @@ func (h *InventoryHandler) deleteInventoryItemById(w http.ResponseWriter, r *htt
 		utils.WriteError(w, http.StatusNotFound, errors.New(fmt.Sprintf("Item with id %v not found", id)))
 		return
 	}
-	h.logger.Info("Succeded to delete inventory item", slog.Int("id", item.ID), slog.String("Name", item.Name))
-	utils.WriteMessage(w, http.StatusNotFound, fmt.Sprintf("Deleted inventory item %v", item.Name))
+	h.logger.Info("Succeded to delete inventory item", slog.Int64("id", item.ID), slog.String("Name", item.ItemName))
+	utils.WriteMessage(w, http.StatusNotFound, fmt.Sprintf("Deleted inventory item %v", item.ItemName))
 }
 
 func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) {

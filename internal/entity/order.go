@@ -5,7 +5,7 @@ import (
 )
 
 type Order struct {
-	ID                  int
+	ID                  int64
 	CustomerName        string
 	TotalAmount         float64
 	Status              OrderStatus

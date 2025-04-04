@@ -3,17 +3,17 @@ package service
 import (
 	"context"
 	"fmt"
+	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/internal/handlers/types"
-	"frappuccino-alem/models"
 )
 
 type MenuRepository interface {
-	CreateMenuItem(ctx context.Context, item models.MenuItem) (string, error)
-	GetAllMenuItems(ctx context.Context, pagination *types.Pagination) ([]models.MenuItem, error)
+	CreateMenuItem(ctx context.Context, item entity.MenuItem) (string, error)
+	GetAllMenuItems(ctx context.Context, pagination *types.Pagination) ([]entity.MenuItem, error)
 	GetTotalMenuCount(ctx context.Context) (int, error)
-	GetMenuItemById(ctx context.Context, MenuId string) (models.MenuItem, error)
+	GetMenuItemById(ctx context.Context, MenuId string) (entity.MenuItem, error)
 	DeleteMenuItemById(ctx context.Context, id string) error
-	UpdateMenuItemById(ctx context.Context, id string, item models.MenuItem) error
+	UpdateMenuItemById(ctx context.Context, id string, item entity.MenuItem) error
 }
 
 type MenuService struct {
@@ -24,9 +24,8 @@ func NewMenuService(repo MenuRepository) *MenuService {
 	return &MenuService{repo: repo}
 }
 
-func (s *MenuService) CreateMenuItem(ctx context.Context, item models.MenuItem) (string, error) {
+func (s *MenuService) CreateMenuItem(ctx context.Context, item entity.MenuItem) (string, error) {
 	const op = "service.CreateMenuItem"
-	// logic here ...
 	id, err := s.repo.CreateMenuItem(ctx, item)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
@@ -34,7 +33,7 @@ func (s *MenuService) CreateMenuItem(ctx context.Context, item models.MenuItem) 
 	return id, nil
 }
 
-func (s *MenuService) GetPaginatedMenuItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[models.MenuItem], error) {
+func (s *MenuService) GetPaginatedMenuItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.MenuItem], error) {
 	const op = "service.GetPaginatedMenuItems"
 
 	totalItems, err := s.repo.GetTotalMenuCount(ctx)
@@ -49,7 +48,7 @@ func (s *MenuService) GetPaginatedMenuItems(ctx context.Context, pagination *typ
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	response := &types.PaginationResponse[models.MenuItem]{
+	response := &types.PaginationResponse[entity.MenuItem]{
 		CurrentPage: pagination.Page,
 		HasNextPage: pagination.Page < totalPages,
 		PageSize:    pagination.PageSize,
@@ -60,12 +59,12 @@ func (s *MenuService) GetPaginatedMenuItems(ctx context.Context, pagination *typ
 	return response, nil
 }
 
-func (s *MenuService) GetMenuItemById(ctx context.Context, id string) (models.MenuItem, error) {
+func (s *MenuService) GetMenuItemById(ctx context.Context, id string) (entity.MenuItem, error) {
 	const op = "service.GetMenuItemById"
 	// logic here ...
 	item, err := s.repo.GetMenuItemById(ctx, id)
 	if err != nil {
-		return models.MenuItem{}, fmt.Errorf("%s: %w", op, err)
+		return entity.MenuItem{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return item, nil
@@ -82,7 +81,7 @@ func (s *MenuService) DeleteMenuItemById(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *MenuService) UpdateMenuItemById(ctx context.Context, id string, item models.MenuItem) error {
+func (s *MenuService) UpdateMenuItemById(ctx context.Context, id string, item entity.MenuItem) error {
 	const op = "service.UpdateMenuItemById"
 	// logic here ...
 	err := s.repo.UpdateMenuItemById(ctx, id, item)

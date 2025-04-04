@@ -22,8 +22,8 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 	const op = "Store.CreateInventoryItem"
 
 	ItemModel := models.Inventory{
-		Name:      item.Name,
-		Quantity:  item.Quantity,
+		ItemName:  item.ItemName,
+		Quantity:  item.QuantityUsed,
 		Unit:      item.Unit,
 		Price:     item.Price,
 		CreatedAt: item.CreatedAt,
@@ -31,7 +31,7 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 	var id int64
 	row := r.db.QueryRowContext(ctx,
 		"INSERT INTO inventory (item_name,quantity,unit,price,created_at) VALUES ($1,$2,$3,$4,$5) RETURNING id",
-		ItemModel.Name, ItemModel.Quantity, ItemModel.Unit, ItemModel.Price, ItemModel.CreatedAt)
+		ItemModel.ItemName, ItemModel.Quantity, ItemModel.Unit, ItemModel.Price, ItemModel.CreatedAt)
 	err := row.Scan(&id)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
@@ -59,7 +59,7 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *t
 
 	for rows.Next() {
 		var item entity.InventoryItem
-		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Unit, &item.Price, &item.CreatedAt, &item.UpdatedAt)
+		err := rows.Scan(&item.ID, &item.ItemName, &item.QuantityUsed, &item.Unit, &item.Price, &item.CreatedAt, &item.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -88,8 +88,8 @@ func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (en
 
 	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(
 		&item.ID,
-		&item.Name,
-		&item.Quantity,
+		&item.ItemName,
+		&item.QuantityUsed,
 		&item.Unit,
 		&item.Price,
 		&item.CreatedAt,
@@ -123,7 +123,7 @@ func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, 
 
 	res, err := r.db.ExecContext(ctx,
 		"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, price = $4, updated_at = $5 WHERE id = $6",
-		item.Name, item.Quantity, item.Unit, item.Price, item.UpdatedAt, id)
+		item.ItemName, item.QuantityUsed, item.Unit, item.Price, item.UpdatedAt, id)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
@@ -151,11 +151,11 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 		}
 
 		item := &entity.InventoryItem{
-			ID:       int(id),
-			Name:     itemName,
-			Quantity: quantity,
-			Unit:     unit,
-			Price:    price,
+			ID:           id,
+			ItemName:     itemName,
+			QuantityUsed: quantity,
+			Unit:         unit,
+			Price:        price,
 		}
 
 		updated, err := updateFn(item)
@@ -169,7 +169,7 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 
 		_, err = tx.ExecContext(ctx,
 			"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, price = $4, updated_at = $5 WHERE id = $6",
-			item.Name, item.Quantity, item.Unit, item.Price, item.UpdatedAt, item.ID)
+			item.ItemName, item.QuantityUsed, item.Unit, item.Price, item.UpdatedAt, item.ID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}

@@ -39,7 +39,7 @@ func (s *InventoryService) CreateInventoryItem(ctx context.Context, item entity.
 
 func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagination *types.Pagination) (*types.PaginationResponse[entity.InventoryItem], error) {
 	const op = "service.GetPaginatedInventoryItems"
-	
+
 	totalItems, err := s.repo.GetTotalInventoryCount(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -93,16 +93,16 @@ func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, Inventor
 	const op = "service.UpdateInventoryItemById"
 	return s.repo.UpdateByID(ctx, int64(InventoryId), func(item *entity.InventoryItem) (updated bool, err error) {
 		if req.Name != nil {
-			if item.Name != *req.Name {
+			if item.ItemName != *req.Name {
 				updated = true
-				item.Name = *req.Name
+				item.ItemName = *req.Name
 			}
 		}
 
 		if req.Quantity != nil {
-			if item.Quantity != *req.Quantity {
+			if item.QuantityUsed != *req.Quantity {
 				updated = true
-				item.Quantity = *req.Quantity
+				item.QuantityUsed = *req.Quantity
 			}
 		}
 
