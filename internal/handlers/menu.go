@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type MenuService interface {
@@ -195,6 +196,33 @@ func validateMenuItemIngredients(ingredients []dto.MenuItemIngredientDTO) error 
 	for _, ing := range ingredients {
 		if ing.QuantityUsed <= 0 {
 			return fmt.Errorf("invalid quantity_used: must be greater than 0")
+		}
+	}
+	return nil
+}
+
+func validateMenuItem(m entity.MenuItem) error {
+	if strings.TrimSpace(m.Name) == "" {
+		return errors.New("menu item name cannot be empty")
+	}
+	if strings.TrimSpace(m.Description) == "" {
+		return errors.New("menu item description cannot be empty")
+	}
+	if m.Price <= 0 {
+		return errors.New("menu item price must be greater than zero")
+	}
+	if len(m.Categories) == 0 {
+		return errors.New("at least one category is required")
+	}
+	if len(m.Ingredients) == 0 {
+		return errors.New("menu item must have at least one ingredient")
+	}
+	for i, ing := range m.Ingredients {
+		if ing.InventoryID <= 0 {
+			return errors.New("ingredient at index " + strconv.Itoa(i) + " has invalid inventory ID")
+		}
+		if ing.QuantityUsed <= 0 {
+			return errors.New("ingredient at index " + strconv.Itoa(i) + " must have positive quantity used")
 		}
 	}
 	return nil

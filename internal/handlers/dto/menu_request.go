@@ -5,7 +5,7 @@ import (
 )
 
 type MenuItemCreateRequest struct {
-	Name        string                  `json:"name" `
+	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
 	Price       float64                 `json:"price"`
 	Categories  []string                `json:"categories"`
@@ -25,13 +25,10 @@ type MenuItemUpdateRequest struct {
 }
 
 type MenuItemIngredientDTO struct {
-	InventoryID  int64   `json:"inventory_id" `
+	InventoryID  int64   `json:"inventory_id"`
 	QuantityUsed float64 `json:"quantity_used"`
 }
 
-// Response DTOs
-
-// Conversion methods
 func (dto *MenuItemCreateRequest) ToEntity() entity.MenuItem {
 	return entity.MenuItem{
 		Name:        dto.Name,
@@ -40,12 +37,12 @@ func (dto *MenuItemCreateRequest) ToEntity() entity.MenuItem {
 		Categories:  dto.Categories,
 		Allergens:   dto.Allergens,
 		Metadata:    dto.Metadata,
-		Ingredients: mapIngredientsDTOToEntity(dto.Ingredients),
+		Ingredients: toIngredients(dto.Ingredients),
 	}
 }
 
 func (dto *MenuItemUpdateRequest) ToEntity() entity.MenuItem {
-	item := entity.MenuItem{}
+	var item entity.MenuItem
 
 	if dto.Name != nil {
 		item.Name = *dto.Name
@@ -66,7 +63,7 @@ func (dto *MenuItemUpdateRequest) ToEntity() entity.MenuItem {
 		item.Metadata = *dto.Metadata
 	}
 	if dto.Ingredients != nil {
-		item.Ingredients = mapIngredientsDTOToEntity(*dto.Ingredients)
+		item.Ingredients = toIngredients(*dto.Ingredients)
 	}
 
 	return item
@@ -82,12 +79,11 @@ func (r *MenuItemUpdateRequest) IsEmpty() bool {
 		r.Ingredients == nil
 }
 
-// Helper functions
-func mapIngredientsDTOToEntity(dtos []MenuItemIngredientDTO) []entity.InventoryItem {
-	ingredients := make([]entity.InventoryItem, len(dtos))
+func toIngredients(dtos []MenuItemIngredientDTO) []entity.MenuItemIngredient {
+	ingredients := make([]entity.MenuItemIngredient, len(dtos))
 	for i, dto := range dtos {
-		ingredients[i] = entity.InventoryItem{
-			ID:           dto.InventoryID,
+		ingredients[i] = entity.MenuItemIngredient{
+			InventoryID:  dto.InventoryID,
 			QuantityUsed: dto.QuantityUsed,
 		}
 	}

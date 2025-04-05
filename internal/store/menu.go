@@ -54,7 +54,7 @@ func (s *MenuStore) CreateMenuItem(ctx context.Context, item entity.MenuItem) (i
 
 		for i, ing := range item.Ingredients {
 			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
-			valueArgs = append(valueArgs, id, ing.ID, ing.QuantityUsed)
+			valueArgs = append(valueArgs, id, ing.InventoryID, ing.QuantityUsed)
 		}
 
 		_, err = tx.ExecContext(ctx,
@@ -131,51 +131,8 @@ func (s *MenuStore) GetAllMenuItems(ctx context.Context, pagination *dto.Paginat
 	return entities, nil
 }
 
-func (s *MenuStore) getIngredientsForMenuItem(ctx context.Context, menuItemID int64) ([]entity.InventoryItem, error) {
-	const op = "Store.getIngredientsForMenuItem"
-
-	query := `
-        SELECT 
-            i.id, 
-            i.item_name,
-            mi.quantity_used, 
-            i.unit, 
-            i.price
-        FROM menu_item_ingredients mi
-        JOIN inventory i ON mi.ingredient_id = i.id
-        WHERE mi.menu_item_id = $1
-    `
-
-	rows, err := s.db.QueryContext(ctx, query, menuItemID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	defer rows.Close()
-
-	var ingredients []entity.InventoryItem
-	for rows.Next() {
-		var model models.Inventory
-		var quantityUsed float64
-		err := rows.Scan(
-			&model.ID,
-			&model.ItemName,
-			&quantityUsed,
-			&model.Unit,
-			&model.Price,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
-		ingredients = append(ingredients, entity.InventoryItem{
-			ID:           model.ID,
-			ItemName:     model.ItemName, // Map to entity field
-			QuantityUsed: quantityUsed,
-			Unit:         model.Unit,
-			Price:        model.Price,
-		})
-	}
-
-	return ingredients, nil
+func (s *MenuStore) getIngredientsForMenuItem(ctx context.Context, menuItemID int64) ([]entity.MenuItemIngredient, error) {
+	return []entity.MenuItemIngredient{}, nil
 }
 
 func (s *MenuStore) GetTotalMenuCount(ctx context.Context) (int, error) {
@@ -300,7 +257,7 @@ func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id int64, item entit
 				return fmt.Errorf("%s: quantity_used must be greater than 0", op)
 			}
 			values = append(values, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
-			args = append(args, id, ing.ID, ing.QuantityUsed)
+			args = append(args, id, ing.InventoryID, ing.QuantityUsed)
 		}
 
 		_, err = tx.ExecContext(ctx, query+strings.Join(values, ","), args...)

@@ -22,71 +22,37 @@ type MenuItemIngredientResponse struct {
 	InventoryID  int64   `json:"inventory_id"`
 	Name         string  `json:"name"`
 	QuantityUsed float64 `json:"quantity_used"`
-	Unit         string  `json:"unit"`
 }
 
 type CreatedResponse struct {
 	ID int64 `json:"id"`
 }
 
-func FromEntity(entity entity.MenuItem) MenuItemResponse {
+func ToMenuItemResponse(e entity.MenuItem) MenuItemResponse {
 	return MenuItemResponse{
-		ID:          entity.ID,
-		Name:        entity.Name,
-		Description: entity.Description,
-		Price:       entity.Price,
-		Categories:  entity.Categories,
-		Allergens:   entity.Allergens,
-		Metadata:    entity.Metadata,
-		Ingredients: mapIngredientsEntityToResponse(entity.Ingredients),
-		CreatedAt:   entity.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   entity.UpdatedAt.Format(time.RFC3339),
+		ID:          e.ID,
+		Name:        e.Name,
+		Description: e.Description,
+		Price:       e.Price,
+		Categories:  e.Categories,
+		Allergens:   e.Allergens,
+		Metadata:    e.Metadata,
+		Ingredients: toIngredientResponses(e.Ingredients),
+		CreatedAt:   formatTime(e.CreatedAt),
+		UpdatedAt:   formatTime(e.UpdatedAt),
 	}
 }
 
-func mapIngredientsEntityToResponse(entities []entity.InventoryItem) []MenuItemIngredientResponse {
-	response := make([]MenuItemIngredientResponse, len(entities))
-	for i, e := range entities {
-		response[i] = MenuItemIngredientResponse{
-			InventoryID:  e.ID,
-			Name:         e.ItemName,
-			QuantityUsed: e.QuantityUsed,
-			Unit:         e.Unit,
+func toIngredientResponses(ingredients []entity.MenuItemIngredient) []MenuItemIngredientResponse {
+	res := make([]MenuItemIngredientResponse, len(ingredients))
+	for i, ing := range ingredients {
+		res[i] = MenuItemIngredientResponse{
+			InventoryID:  ing.InventoryID,
+			Name:         ing.Name,
+			QuantityUsed: ing.QuantityUsed,
 		}
 	}
-	return response
-}
-
-func ToMenuItemResponse(entity entity.MenuItem) MenuItemResponse {
-	return MenuItemResponse{
-		ID:          entity.ID,
-		Name:        entity.Name,
-		Description: entity.Description,
-		Price:       entity.Price,
-		Categories:  entity.Categories,
-		Allergens:   entity.Allergens,
-		Metadata:    entity.Metadata,
-		Ingredients: ToMenuItemIngredientResponses(entity.Ingredients),
-		CreatedAt:   formatTime(entity.CreatedAt),
-		UpdatedAt:   formatTime(entity.UpdatedAt),
-	}
-}
-
-func ToMenuItemIngredientResponses(ingredients []entity.InventoryItem) []MenuItemIngredientResponse {
-	responses := make([]MenuItemIngredientResponse, len(ingredients))
-	for i, ing := range ingredients {
-		responses[i] = ToMenuItemIngredientResponse(ing)
-	}
-	return responses
-}
-
-func ToMenuItemIngredientResponse(ingredient entity.InventoryItem) MenuItemIngredientResponse {
-	return MenuItemIngredientResponse{
-		InventoryID:  ingredient.ID,
-		Name:         ingredient.ItemName,
-		QuantityUsed: ingredient.QuantityUsed,
-		Unit:         ingredient.Unit,
-	}
+	return res
 }
 
 func formatTime(t time.Time) string {

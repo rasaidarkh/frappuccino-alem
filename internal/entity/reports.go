@@ -1,13 +1,21 @@
 package entity
 
 type PopularItem struct {
-	ProductId int `json:"product_id"`
-	Sold      int `json:"total_quantity"`
+	ProductId   int    `json:"product_id"`
+	ProductName string `json:"product_name"`
+	Sold        int    `json:"total_quantity"`
+}
+
+type TotalItemsByPeriod struct {
+	Period       string           `json:"period"`
+	Month        string           `json:"month,omitempty"`
+	Year         int              `json:"year,omitempty"`
+	OrderedItems []map[string]int `json:"ordered_items"`
 }
 
 type SearchResult struct {
 	MenuItems []SearchMenuItem `json:"menu_items,omitempty"`
-	Orders    []Order          `json:"orders,omitempty"`
+	Orders    []SearchOrder    `json:"orders,omitempty"`
 	Matches   int              `json:"total_matches"`
 }
 
