@@ -32,7 +32,7 @@ func (s *APIServer) Run() error {
 	inventoryHandler.RegisterEndpoints(s.mux)
 
 	menuStore := store.NewMenuStore(s.db)
-	menuService := service.NewMenuService(menuStore)
+	menuService := service.NewMenuService(menuStore, inventoryStore)
 	menuHandler := handlers.NewMenuHandler(menuService, s.logger)
 	menuHandler.RegisterEndpoints(s.mux)
 

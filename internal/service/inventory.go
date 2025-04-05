@@ -7,38 +7,42 @@ import (
 
 	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/internal/handlers/dto"
+	"frappuccino-alem/internal/store"
 )
 
-type InventoryRepository interface {
-	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
-	GetAllInventoryItems(ctx context.Context, pagination *dto.Pagination) ([]entity.InventoryItem, error)
-	GetTotalInventoryCount(ctx context.Context) (int, error)
+type InventoryService interface {
+	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (entity.InventoryItem, error)
+	GetPaginatedInventoryItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.InventoryItem], error)
+	GetPaginatedLeftOverItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[dto.LeftOverItem], error)
 	GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
-	DeleteInventoryItemById(ctx context.Context, id int64) (int64, error)
-	UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) (int64, error)
-	UpdateByID(ctx context.Context, userID int64, updateFn func(item *entity.InventoryItem) (bool, error)) error
+	DeleteInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
+	UpdateInventoryItemById(ctx context.Context, id int64, request dto.InventoryItemRequest) error
 }
 
-type InventoryService struct {
-	repo InventoryRepository
+type inventoryService struct {
+	repo store.InventoryRepository
 }
 
-func NewInventoryService(repo InventoryRepository) *InventoryService {
-	return &InventoryService{repo: repo}
+func NewInventoryService(repo store.InventoryRepository) InventoryService {
+	return &inventoryService{repo: repo}
 }
 
-func (s *InventoryService) CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error) {
+func (s *inventoryService) CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (entity.InventoryItem, error) {
 	const op = "service.CreateInventoryItem"
 
 	id, err := s.repo.CreateInventoryItem(ctx, item)
 	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
+		return entity.InventoryItem{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return id, nil
+	item.ID = id
+	item.CreatedAt = item.CreatedAt.UTC()
+	item.UpdatedAt = item.UpdatedAt.UTC()
+
+	return item, nil
 }
 
-func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.InventoryItem], error) {
+func (s *inventoryService) GetPaginatedInventoryItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.InventoryItem], error) {
 	const op = "service.GetPaginatedInventoryItems"
 
 	totalItems, err := s.repo.GetTotalInventoryCount(ctx)
@@ -64,7 +68,7 @@ func (s *InventoryService) GetPaginatedInventoryItems(ctx context.Context, pagin
 	return response, nil
 }
 
-func (s *InventoryService) GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
+func (s *inventoryService) GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
 	const op = "service.GetInventoryItemById"
 	// logic here ...
 	item, err := s.repo.GetInventoryItemById(ctx, InventoryId)
@@ -75,7 +79,7 @@ func (s *InventoryService) GetInventoryItemById(ctx context.Context, InventoryId
 	return item, nil
 }
 
-func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
+func (s *inventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
 	const op = "service.DeleteInventoryItemById"
 	// logic here ...
 	item, err := s.repo.GetInventoryItemById(ctx, InventoryId)
@@ -90,7 +94,7 @@ func (s *InventoryService) DeleteInventoryItemById(ctx context.Context, Inventor
 	return item, nil
 }
 
-func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId int64, req dto.InventoryItemRequest) error {
+func (s *inventoryService) UpdateInventoryItemById(ctx context.Context, InventoryId int64, req dto.InventoryItemRequest) error {
 	const op = "service.UpdateInventoryItemById"
 	return s.repo.UpdateByID(ctx, int64(InventoryId), func(item *entity.InventoryItem) (updated bool, err error) {
 		if req.Name != nil {
@@ -131,7 +135,7 @@ func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, Inventor
 	})
 }
 
-func (s *InventoryService) GetPaginatedLeftOverItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[dto.LefOverItem], error) {
+func (s *inventoryService) GetPaginatedLeftOverItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[dto.LeftOverItem], error) {
 	const op = "service.GetPaginatedLeftOverItems"
 
 	totalItems, err := s.repo.GetTotalInventoryCount(ctx)
@@ -146,9 +150,9 @@ func (s *InventoryService) GetPaginatedLeftOverItems(ctx context.Context, pagina
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	leftoverItems := make([]dto.LefOverItem, 0)
+	leftoverItems := make([]dto.LeftOverItem, 0)
 	for _, item := range items {
-		leftoverItems = append(leftoverItems, dto.LefOverItem{
+		leftoverItems = append(leftoverItems, dto.LeftOverItem{
 			Name:     item.ItemName,
 			Quantity: item.Quantity,
 			UnitType: item.Unit,
@@ -156,7 +160,7 @@ func (s *InventoryService) GetPaginatedLeftOverItems(ctx context.Context, pagina
 		})
 	}
 
-	response := &dto.PaginationResponse[dto.LefOverItem]{
+	response := &dto.PaginationResponse[dto.LeftOverItem]{
 		CurrentPage: pagination.Page,
 		HasNextPage: pagination.Page < totalPages,
 		PageSize:    pagination.PageSize,
