@@ -54,6 +54,9 @@ func (s *inventoryService) GetPaginatedInventoryItems(ctx context.Context, pagin
 
 	items, err := s.repo.GetAllInventoryItems(ctx, pagination)
 	if err != nil {
+		if err == store.ErrNotFound {
+			return nil, err
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -70,9 +73,11 @@ func (s *inventoryService) GetPaginatedInventoryItems(ctx context.Context, pagin
 
 func (s *inventoryService) GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
 	const op = "service.GetInventoryItemById"
-	// logic here ...
 	item, err := s.repo.GetInventoryItemById(ctx, InventoryId)
 	if err != nil {
+		if err == store.ErrNotFound {
+			return entity.InventoryItem{}, err
+		}
 		return entity.InventoryItem{}, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -81,9 +86,11 @@ func (s *inventoryService) GetInventoryItemById(ctx context.Context, InventoryId
 
 func (s *inventoryService) DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error) {
 	const op = "service.DeleteInventoryItemById"
-	// logic here ...
 	item, err := s.repo.GetInventoryItemById(ctx, InventoryId)
 	if err != nil {
+		if err == store.ErrNotFound {
+			return entity.InventoryItem{}, err
+		}
 		return entity.InventoryItem{}, fmt.Errorf("%s: %w", op, err)
 	}
 	_, err = s.repo.DeleteInventoryItemById(ctx, InventoryId)

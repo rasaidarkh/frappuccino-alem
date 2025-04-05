@@ -24,7 +24,20 @@ type IngredientRequest struct {
 }
 
 func (r MenuItemRequest) Validate() error {
+	if r.Name == nil {
+		return fmt.Errorf("invalid menu property: name is required")
+	}
+	if r.Description == nil {
+		return fmt.Errorf("invalid menu property: description is required")
+	}
+	if r.Price == nil {
+		return fmt.Errorf("invalid menu property: price is required")
+	}
+
 	if r.Ingredients == nil {
+		return fmt.Errorf("invalid menu property: ingredients are required")
+	}
+	if len(*r.Ingredients) < 1 {
 		return fmt.Errorf("at least one ingredient is required")
 	}
 
@@ -54,15 +67,30 @@ func (r MenuItemRequest) MapToEntity() entity.MenuItem {
 		}
 	}
 
-	return entity.MenuItem{
-		Name:        *r.Name,
-		Description: *r.Description,
-		Price:       *r.Price,
-		Categories:  *r.Categories,
-		Allergens:   *r.Allergens,
-		Metadata:    *r.Metadata,
+	entity := entity.MenuItem{
 		Ingredients: ingredients,
 	}
+
+	if r.Name != nil {
+		entity.Name = *r.Name
+	}
+	if r.Description != nil {
+		entity.Description = *r.Description
+	}
+	if r.Price != nil {
+		entity.Price = *r.Price
+	}
+	if r.Categories != nil {
+		entity.Categories = *r.Categories
+	}
+	if r.Allergens != nil {
+		entity.Allergens = *r.Allergens
+	}
+	if r.Metadata != nil {
+		entity.Metadata = *r.Metadata
+	}
+
+	return entity
 }
 
 type MenuIngredientResponse struct {

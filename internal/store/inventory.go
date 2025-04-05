@@ -28,15 +28,20 @@ func NewInventoryStore(db *sql.DB) *inventoryRepository {
 	return &inventoryRepository{db}
 }
 
+var (
+	ErrNotFound     = errors.New("not found")
+	ErrConflict     = errors.New("conflict")
+	ErrInvalidInput = errors.New("invalid input")
+)
+
 func (r *inventoryRepository) CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error) {
 	const op = "Store.CreateInventoryItem"
 
 	ItemModel := models.Inventory{
-		ItemName:  item.ItemName,
-		Quantity:  item.Quantity,
-		Unit:      item.Unit,
-		Price:     item.Price,
-		CreatedAt: item.CreatedAt,
+		ItemName: item.ItemName,
+		Quantity: item.Quantity,
+		Unit:     item.Unit,
+		Price:    item.Price,
 	}
 	var id int64
 	row := r.db.QueryRowContext(ctx,
@@ -92,11 +97,13 @@ func (r *inventoryRepository) GetTotalInventoryCount(ctx context.Context) (int, 
 	return total, nil
 }
 
+// Updated GetInventoryItemById with proper error handling
 func (r *inventoryRepository) GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error) {
 	const op = "Store.GetInventoryItemById"
 	var item entity.InventoryItem
 
-	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(
+	err := r.db.QueryRowContext(ctx,
+		"SELECT * FROM inventory WHERE id = $1", id).Scan(
 		&item.ID,
 		&item.ItemName,
 		&item.Quantity,
@@ -106,6 +113,9 @@ func (r *inventoryRepository) GetInventoryItemById(ctx context.Context, id int64
 		&item.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return item, fmt.Errorf("%s: %w", op, ErrNotFound)
+		}
 		return item, fmt.Errorf("%s: %w", op, err)
 	}
 

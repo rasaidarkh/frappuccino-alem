@@ -42,8 +42,7 @@ func (s *menuService) CreateMenuItem(ctx context.Context, item entity.MenuItem) 
 		_, err := s.inventoryRepo.GetInventoryItemById(ctx, ing.ID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
-				return entity.MenuItem{}, fmt.Errorf("%s: ingredient %d not found: %v",
-					op, ing.ID, "invalid input")
+				return entity.MenuItem{}, fmt.Errorf("ingredient %d not found", ing.ID)
 			}
 			return entity.MenuItem{}, fmt.Errorf("%s: %w", op, err)
 		}

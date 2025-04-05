@@ -13,8 +13,6 @@ import (
 	"frappuccino-alem/models/mapper"
 )
 
-var ErrNotFound = errors.New("data not found")
-
 type MenuRepository interface {
 	CreateMenuItem(ctx context.Context, item entity.MenuItem) (int64, error)
 	GetAllMenuItems(ctx context.Context, pagination *dto.Pagination) ([]entity.MenuItem, error)

@@ -53,15 +53,13 @@ func (h *MenuHandler) createMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	entityItem := req.MapToEntity()
-	fmt.Println(fmt.Sprintf("NO ERRORS1 %v", entityItem), nil)
-	_, err := h.service.CreateMenuItem(r.Context(), entityItem)
+	item, err := h.service.CreateMenuItem(r.Context(), entityItem)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("NO ERRORS2 %v", entityItem), nil)
 		h.logError("Failed to create menu item", err)
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to create menu item: %v", err))
 		return
 	}
-	utils.WriteJSON(w, http.StatusCreated, entityItem)
+	utils.WriteJSON(w, http.StatusCreated, dto.MenuItemToResponse(item))
 }
 
 func (h *MenuHandler) getPaginatedMenuItems(w http.ResponseWriter, r *http.Request) {
@@ -78,11 +76,21 @@ func (h *MenuHandler) getPaginatedMenuItems(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response, err := h.service.GetPaginatedMenuItems(r.Context(), pagination)
+	paginatedData, err := h.service.GetPaginatedMenuItems(r.Context(), pagination)
 	if err != nil {
 		h.logError("Failed to get menu items", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	response := dto.PaginationResponse[dto.MenuItemResponse]{
+		CurrentPage: paginatedData.CurrentPage,
+		HasNextPage: paginatedData.HasNextPage,
+		PageSize:    paginatedData.PageSize,
+		TotalPages:  paginatedData.TotalPages,
+	}
+	for _, item := range paginatedData.Data {
+		response.Data = append(response.Data, dto.MenuItemToResponse(item))
 	}
 
 	utils.WriteJSON(w, http.StatusOK, response)

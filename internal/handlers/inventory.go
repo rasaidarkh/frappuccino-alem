@@ -50,7 +50,7 @@ func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Re
 
 	if err := validateInventoryItem(req); err != nil {
 		h.logger.Error("Some of the fields are incorrect", "error", err.Error())
-		utils.WriteError(w, http.StatusBadRequest, errors.New("Validation failed"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
