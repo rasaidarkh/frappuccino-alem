@@ -1,32 +1,24 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/dto"
-	"frappuccino-alem/internal/store"
-	"frappuccino-alem/internal/utils"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"frappuccino-alem/internal/handlers/dto"
+	"frappuccino-alem/internal/service"
+	"frappuccino-alem/internal/store"
+	"frappuccino-alem/internal/utils"
 )
 
-type MenuService interface {
-	CreateMenuItem(ctx context.Context, item entity.MenuItem) (int64, error)
-	GetPaginatedMenuItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.MenuItem], error)
-	GetMenuItemById(ctx context.Context, id int64) (entity.MenuItem, error)
-	UpdateMenuItemById(ctx context.Context, id int64, item entity.MenuItem) error
-	DeleteMenuItemById(ctx context.Context, id int64) error
-}
-
 type MenuHandler struct {
-	service MenuService
+	service service.MenuService
 	logger  *slog.Logger
 }
 
-func NewMenuHandler(service MenuService, logger *slog.Logger) *MenuHandler {
+func NewMenuHandler(service service.MenuService, logger *slog.Logger) *MenuHandler {
 	return &MenuHandler{service, logger}
 }
 
@@ -48,28 +40,26 @@ func (h *MenuHandler) RegisterEndpoints(mux *http.ServeMux) {
 }
 
 func (h *MenuHandler) createMenuItem(w http.ResponseWriter, r *http.Request) {
-	var req dto.MenuItemCreateRequest
+	var req dto.MenuItemRequest
 	if err := utils.ParseJSON(r, &req); err != nil {
 		h.logError("Failed to parse request body", err)
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Failed to parse request body"))
+		return
+	}
+	if err := req.Validate(); err != nil {
+		h.logError("Invalid request", err)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Invalid request: %v", err))
 		return
 	}
 
-	if err := validateMenuItemIngredients(req.Ingredients); err != nil {
-		h.logError("Invalid ingredients", err)
-		utils.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-
-	entityItem := req.ToEntity()
-	id, err := h.service.CreateMenuItem(r.Context(), entityItem)
+	entityItem := req.MapToEntity()
+	item, err := h.service.CreateMenuItem(r.Context(), entityItem)
 	if err != nil {
 		h.logError("Failed to create menu item", err)
-		utils.WriteError(w, http.StatusInternalServerError, err)
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to create menu item: %v", err))
 		return
 	}
-
-	utils.WriteJSON(w, http.StatusCreated, dto.CreatedResponse{ID: id})
+	utils.WriteJSON(w, http.StatusCreated, dto.MenuItemToResponse(item))
 }
 
 func (h *MenuHandler) getPaginatedMenuItems(w http.ResponseWriter, r *http.Request) {
@@ -86,11 +76,21 @@ func (h *MenuHandler) getPaginatedMenuItems(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response, err := h.service.GetPaginatedMenuItems(r.Context(), pagination)
+	paginatedData, err := h.service.GetPaginatedMenuItems(r.Context(), pagination)
 	if err != nil {
 		h.logError("Failed to get menu items", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	response := dto.PaginationResponse[dto.MenuItemResponse]{
+		CurrentPage: paginatedData.CurrentPage,
+		HasNextPage: paginatedData.HasNextPage,
+		PageSize:    paginatedData.PageSize,
+		TotalPages:  paginatedData.TotalPages,
+	}
+	for _, item := range paginatedData.Data {
+		response.Data = append(response.Data, dto.MenuItemToResponse(item))
 	}
 
 	utils.WriteJSON(w, http.StatusOK, response)
@@ -109,7 +109,7 @@ func (h *MenuHandler) getMenuItemById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, dto.ToMenuItemResponse(entityItem))
+	utils.WriteJSON(w, http.StatusOK, dto.MenuItemToDetailedResponse(entityItem))
 }
 
 func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request) {
@@ -118,22 +118,16 @@ func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request)
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-
-	var req dto.MenuItemUpdateRequest
+	var req dto.MenuItemRequest
 	if err := utils.ParseJSON(r, &req); err != nil {
-		h.logError("Failed to parse request body", err)
-		utils.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-
-	if req.IsEmpty() {
-		utils.WriteError(w, http.StatusBadRequest, errors.New("at least one field must be provided"))
+		h.logger.Error("Failed to parse inventory item request", "error", err.Error())
+		utils.WriteError(w, http.StatusBadRequest, errors.New("Invalid request payload"))
 		return
 	}
 
 	if req.Ingredients != nil {
 		for _, ing := range *req.Ingredients {
-			if ing.QuantityUsed <= 0 {
+			if *ing.Quantity <= 0 {
 				utils.WriteError(w, http.StatusBadRequest,
 					fmt.Errorf("quantity_used must be greater than 0"))
 				return
@@ -141,12 +135,15 @@ func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	if err := h.service.UpdateMenuItemById(r.Context(), id, req.ToEntity()); err != nil {
-		h.handleNotFoundOrError(w, "menu item", id, err)
+	h.logger.Debug("update request ", "menuRequest", req)
+	err = h.service.UpdateMenuItemById(r.Context(), int64(id), req)
+	if err != nil {
+		h.logger.Error("Failed to update menu item", slog.Int64("id", id), "error", err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, errors.New("Failed to update menu item"))
 		return
 	}
-
-	w.WriteHeader(http.StatusNoContent)
+	h.logger.Info("Succeeded to update menu item", slog.Int64("id", id))
+	utils.WriteMessage(w, http.StatusOK, "Updated menu item")
 }
 
 func (h *MenuHandler) deleteMenuItemById(w http.ResponseWriter, r *http.Request) {
@@ -189,13 +186,4 @@ func parsePathID(r *http.Request, param string) (int64, error) {
 		return 0, fmt.Errorf("invalid ID format: must be integer")
 	}
 	return id, nil
-}
-
-func validateMenuItemIngredients(ingredients []dto.MenuItemIngredientDTO) error {
-	for _, ing := range ingredients {
-		if ing.QuantityUsed <= 0 {
-			return fmt.Errorf("invalid quantity_used: must be greater than 0")
-		}
-	}
-	return nil
 }

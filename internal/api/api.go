@@ -3,13 +3,14 @@ package api
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
+	"net/http"
+
 	"frappuccino-alem/internal/config"
 	"frappuccino-alem/internal/handlers"
 	"frappuccino-alem/internal/handlers/middleware"
 	"frappuccino-alem/internal/service"
 	"frappuccino-alem/internal/store"
-	"log/slog"
-	"net/http"
 )
 
 type APIServer struct {
@@ -24,7 +25,6 @@ func NewAPIServer(mux *http.ServeMux, config config.Config, db *sql.DB, logger *
 }
 
 func (s *APIServer) Run() error {
-
 	// setup three layers for each of the entities
 	inventoryStore := store.NewInventoryStore(s.db)
 	inventoryService := service.NewInventoryService(inventoryStore)
@@ -32,7 +32,7 @@ func (s *APIServer) Run() error {
 	inventoryHandler.RegisterEndpoints(s.mux)
 
 	menuStore := store.NewMenuStore(s.db)
-	menuService := service.NewMenuService(menuStore)
+	menuService := service.NewMenuService(menuStore, inventoryStore)
 	menuHandler := handlers.NewMenuHandler(menuService, s.logger)
 	menuHandler.RegisterEndpoints(s.mux)
 

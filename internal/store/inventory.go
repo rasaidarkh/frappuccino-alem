@@ -5,33 +5,48 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/internal/handlers/dto"
 	"frappuccino-alem/models"
 )
 
-type InventoryStore struct {
+type InventoryRepository interface {
+	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
+	GetAllInventoryItems(ctx context.Context, pagination *dto.Pagination) ([]entity.InventoryItem, error)
+	GetTotalInventoryCount(ctx context.Context) (int, error)
+	GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error)
+	DeleteInventoryItemById(ctx context.Context, id int64) (int64, error)
+	UpdateByID(ctx context.Context, id int64, updateFn func(item *entity.InventoryItem) (bool, error)) error
+}
+
+type inventoryRepository struct {
 	db *sql.DB
 }
 
-func NewInventoryStore(db *sql.DB) *InventoryStore {
-	return &InventoryStore{db}
+func NewInventoryStore(db *sql.DB) *inventoryRepository {
+	return &inventoryRepository{db}
 }
 
-func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error) {
+var (
+	ErrNotFound     = errors.New("not found")
+	ErrConflict     = errors.New("conflict")
+	ErrInvalidInput = errors.New("invalid input")
+)
+
+func (r *inventoryRepository) CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error) {
 	const op = "Store.CreateInventoryItem"
 
 	ItemModel := models.Inventory{
-		ItemName:  item.ItemName,
-		Quantity:  item.QuantityUsed,
-		Unit:      item.Unit,
-		Price:     item.Price,
-		CreatedAt: item.CreatedAt,
+		ItemName: item.ItemName,
+		Quantity: item.Quantity,
+		Unit:     item.Unit,
+		Price:    item.Price,
 	}
 	var id int64
 	row := r.db.QueryRowContext(ctx,
-		"INSERT INTO inventory (item_name,quantity,unit,price,created_at) VALUES ($1,$2,$3,$4,$5) RETURNING id",
-		ItemModel.ItemName, ItemModel.Quantity, ItemModel.Unit, ItemModel.Price, ItemModel.CreatedAt)
+		"INSERT INTO inventory (item_name,quantity,unit,price) VALUES ($1,$2,$3,$4) RETURNING id",
+		ItemModel.ItemName, ItemModel.Quantity, ItemModel.Unit, ItemModel.Price)
 	err := row.Scan(&id)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
@@ -39,7 +54,7 @@ func (r *InventoryStore) CreateInventoryItem(ctx context.Context, item entity.In
 	return id, nil
 }
 
-func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *dto.Pagination) ([]entity.InventoryItem, error) {
+func (r *inventoryRepository) GetAllInventoryItems(ctx context.Context, pagination *dto.Pagination) ([]entity.InventoryItem, error) {
 	const op = "Store.GetAllInventoryItems"
 	var items []entity.InventoryItem
 	query := "SELECT * FROM inventory"
@@ -59,7 +74,7 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *d
 
 	for rows.Next() {
 		var item entity.InventoryItem
-		err := rows.Scan(&item.ID, &item.ItemName, &item.QuantityUsed, &item.Unit, &item.Price, &item.CreatedAt, &item.UpdatedAt)
+		err := rows.Scan(&item.ID, &item.ItemName, &item.Quantity, &item.Unit, &item.Price, &item.CreatedAt, &item.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -73,7 +88,7 @@ func (r *InventoryStore) GetAllInventoryItems(ctx context.Context, pagination *d
 	return items, nil
 }
 
-func (r *InventoryStore) GetTotalInventoryCount(ctx context.Context) (int, error) {
+func (r *inventoryRepository) GetTotalInventoryCount(ctx context.Context) (int, error) {
 	var total int
 	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM inventory").Scan(&total)
 	if err != nil {
@@ -82,27 +97,32 @@ func (r *InventoryStore) GetTotalInventoryCount(ctx context.Context) (int, error
 	return total, nil
 }
 
-func (r *InventoryStore) GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error) {
+// Updated GetInventoryItemById with proper error handling
+func (r *inventoryRepository) GetInventoryItemById(ctx context.Context, id int64) (entity.InventoryItem, error) {
 	const op = "Store.GetInventoryItemById"
 	var item entity.InventoryItem
 
-	err := r.db.QueryRowContext(ctx, "SELECT * FROM inventory WHERE id = $1", id).Scan(
+	err := r.db.QueryRowContext(ctx,
+		"SELECT * FROM inventory WHERE id = $1", id).Scan(
 		&item.ID,
 		&item.ItemName,
-		&item.QuantityUsed,
+		&item.Quantity,
 		&item.Unit,
 		&item.Price,
 		&item.CreatedAt,
 		&item.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return item, fmt.Errorf("%s: %w", op, ErrNotFound)
+		}
 		return item, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return item, nil
 }
 
-func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id int64) (int64, error) {
+func (r *inventoryRepository) DeleteInventoryItemById(ctx context.Context, id int64) (int64, error) {
 	const op = "Store.DeleteInventoryItemById"
 
 	res, err := r.db.ExecContext(ctx, "DELETE FROM inventory WHERE id = $1", id)
@@ -118,28 +138,10 @@ func (r *InventoryStore) DeleteInventoryItemById(ctx context.Context, id int64) 
 	return rowsAffected, nil
 }
 
-func (r *InventoryStore) UpdateInventoryItemById(ctx context.Context, id int64, item entity.InventoryItem) (int64, error) {
-	const op = "Store.UpdateInventoryItemById"
-
-	res, err := r.db.ExecContext(ctx,
-		"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, price = $4, updated_at = $5 WHERE id = $6",
-		item.ItemName, item.QuantityUsed, item.Unit, item.Price, item.UpdatedAt, id)
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
-	}
-
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return rowsAffected, nil
-}
-
-func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func(item *entity.InventoryItem) (bool, error)) error {
+func (r *inventoryRepository) UpdateByID(ctx context.Context, id int64, updateFn func(item *entity.InventoryItem) (bool, error)) error {
 	const op = "Store.UpdateInventoryItemById"
 	return runInTx(r.db, func(tx *sql.Tx) error {
-		row := tx.QueryRowContext(ctx, "SELECT item_name, quantity, unit FROM inventory WHERE id = $1 FOR UPDATE", id)
+		row := tx.QueryRowContext(ctx, "SELECT item_name, quantity, unit, price FROM inventory WHERE id = $1 FOR UPDATE", id)
 
 		var itemName string
 		var quantity float64
@@ -151,11 +153,11 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 		}
 
 		item := &entity.InventoryItem{
-			ID:           id,
-			ItemName:     itemName,
-			QuantityUsed: quantity,
-			Unit:         unit,
-			Price:        price,
+			ID:       id,
+			ItemName: itemName,
+			Quantity: quantity,
+			Unit:     unit,
+			Price:    price,
 		}
 
 		updated, err := updateFn(item)
@@ -169,7 +171,7 @@ func (r *InventoryStore) UpdateByID(ctx context.Context, id int64, updateFn func
 
 		_, err = tx.ExecContext(ctx,
 			"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, price = $4, updated_at = $5 WHERE id = $6",
-			item.ItemName, item.QuantityUsed, item.Unit, item.Price, item.UpdatedAt, item.ID)
+			item.ItemName, item.Quantity, item.Unit, item.Price, item.UpdatedAt, item.ID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}

@@ -41,18 +41,18 @@ func ToMenuItemIngredientModel(e entity.InventoryItem, menuItemID int) models.Me
 	return models.MenuItemIngredient{
 		MenuItemID:   int64(menuItemID),
 		InventoryID:  int64(e.ID),
-		QuantityUsed: e.QuantityUsed,
+		QuantityUsed: e.Quantity,
 	}
 }
 
 func ToInventoryItemEntity(m models.Inventory) entity.InventoryItem {
 	return entity.InventoryItem{
-		ID:           m.ID,
-		ItemName:     m.ItemName,
-		QuantityUsed: 0, // This should come from join queries
-		Unit:         m.Unit,
-		Price:        m.Price,
-		CreatedAt:    m.CreatedAt,
-		UpdatedAt:    m.UpdatedAt,
+		ID:        m.ID,
+		ItemName:  m.ItemName,
+		Quantity:  0,
+		Unit:      m.Unit,
+		Price:     m.Price,
+		CreatedAt: m.CreatedAt,
+		UpdatedAt: m.UpdatedAt,
 	}
 }

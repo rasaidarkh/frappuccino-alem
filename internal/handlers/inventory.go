@@ -1,31 +1,23 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/dto"
-	"frappuccino-alem/internal/utils"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"frappuccino-alem/internal/handlers/dto"
+	"frappuccino-alem/internal/service"
+	"frappuccino-alem/internal/utils"
 )
 
-type InventoryService interface {
-	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
-	GetPaginatedInventoryItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.InventoryItem], error)
-	GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
-	DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
-	UpdateInventoryItemById(ctx context.Context, InventoryId int64, item dto.InventoryItemRequest) error
-}
-
 type InventoryHandler struct {
-	service InventoryService
+	service service.InventoryService
 	logger  *slog.Logger
 }
 
-func NewInventoryHandler(service InventoryService, logger *slog.Logger) *InventoryHandler {
+func NewInventoryHandler(service service.InventoryService, logger *slog.Logger) *InventoryHandler {
 	return &InventoryHandler{service, logger}
 }
 
@@ -49,28 +41,28 @@ func (h *InventoryHandler) RegisterEndpoints(mux *http.ServeMux) {
 }
 
 func (h *InventoryHandler) createInventoryItem(w http.ResponseWriter, r *http.Request) {
-	var item dto.InventoryItemRequest
-	if err := utils.ParseJSON(r, &item); err != nil {
+	var req dto.InventoryItemRequest
+	if err := utils.ParseJSON(r, &req); err != nil {
 		h.logger.Error("Failed to parse inventory item request", "error", err.Error())
 		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid request payload"))
 		return
 	}
 
-	if err := validateInventoryItem(item); err != nil {
+	if err := validateInventoryItem(req); err != nil {
 		h.logger.Error("Some of the fields are incorrect", "error", err.Error())
-		utils.WriteError(w, http.StatusBadRequest, errors.New("Validation failed"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	entity := item.MapToInventoryItemEntity()
+	entity := req.MapToEntity()
 
-	id, err := h.service.CreateInventoryItem(r.Context(), entity)
+	item, err := h.service.CreateInventoryItem(r.Context(), entity)
 	if err != nil {
 		h.logger.Error("Failed to create new inventory item", "error", err.Error())
 		utils.WriteError(w, http.StatusInternalServerError, errors.New("Failed to create new inventory item"))
 		return
 	}
-	h.logger.Info("Succeeded to create new inventory item", slog.Int64("id", id))
+	h.logger.Info("Succeeded to create new inventory item", slog.Int64("id", item.ID))
 	utils.WriteMessage(w, http.StatusCreated, "Created new inventory item")
 }
 
@@ -170,7 +162,7 @@ func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	response, err := h.service.GetPaginatedInventoryItems(r.Context(), pagination)
+	response, err := h.service.GetPaginatedLeftOverItems(r.Context(), pagination)
 	if err != nil {
 		h.logger.Error("Failed to get leftovers", "error", err.Error())
 		utils.WriteError(w, http.StatusInternalServerError, errors.New("failed to retrieve leftover items"))
