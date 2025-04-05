@@ -4,17 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"frappuccino-alem/internal/entity"
-	"frappuccino-alem/internal/handlers/dto"
-	"frappuccino-alem/internal/utils"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"frappuccino-alem/internal/entity"
+	"frappuccino-alem/internal/handlers/dto"
+	"frappuccino-alem/internal/utils"
 )
 
 type InventoryService interface {
 	CreateInventoryItem(ctx context.Context, item entity.InventoryItem) (int64, error)
 	GetPaginatedInventoryItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[entity.InventoryItem], error)
+	GetPaginatedLeftOverItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[dto.LefOverItem], error)
 	GetInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
 	DeleteInventoryItemById(ctx context.Context, InventoryId int64) (entity.InventoryItem, error)
 	UpdateInventoryItemById(ctx context.Context, InventoryId int64, item dto.InventoryItemRequest) error
@@ -170,7 +172,7 @@ func (h *InventoryHandler) GetLeftOvers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	response, err := h.service.GetPaginatedInventoryItems(r.Context(), pagination)
+	response, err := h.service.GetPaginatedLeftOverItems(r.Context(), pagination)
 	if err != nil {
 		h.logger.Error("Failed to get leftovers", "error", err.Error())
 		utils.WriteError(w, http.StatusInternalServerError, errors.New("failed to retrieve leftover items"))

@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+
 	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/internal/handlers/dto"
 	"frappuccino-alem/models"
 	"frappuccino-alem/models/mapper"
-	"strings"
 )
 
 var ErrNotFound = errors.New("data not found")
@@ -54,7 +55,7 @@ func (s *MenuStore) CreateMenuItem(ctx context.Context, item entity.MenuItem) (i
 
 		for i, ing := range item.Ingredients {
 			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
-			valueArgs = append(valueArgs, id, ing.ID, ing.QuantityUsed)
+			valueArgs = append(valueArgs, id, ing.ID, ing.Quantity)
 		}
 
 		_, err = tx.ExecContext(ctx,
@@ -167,11 +168,11 @@ func (s *MenuStore) getIngredientsForMenuItem(ctx context.Context, menuItemID in
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		ingredients = append(ingredients, entity.InventoryItem{
-			ID:           model.ID,
-			ItemName:     model.ItemName, // Map to entity field
-			QuantityUsed: quantityUsed,
-			Unit:         model.Unit,
-			Price:        model.Price,
+			ID:       model.ID,
+			ItemName: model.ItemName, // Map to entity field
+			Quantity: quantityUsed,
+			Unit:     model.Unit,
+			Price:    model.Price,
 		})
 	}
 
@@ -209,7 +210,6 @@ func (s *MenuStore) GetMenuItemById(ctx context.Context, id int64) (entity.MenuI
 		&model.CreatedAt,
 		&model.UpdatedAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return entity.MenuItem{}, fmt.Errorf("%s: %w", op, ErrNotFound)
@@ -244,7 +244,6 @@ func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id int64, item entit
 		"SELECT EXISTS(SELECT 1 FROM menu_items WHERE id = $1)",
 		id,
 	).Scan(&exists)
-
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -296,11 +295,11 @@ func (s *MenuStore) UpdateMenuItemById(ctx context.Context, id int64, item entit
 		args := make([]interface{}, 0, len(item.Ingredients)*3)
 
 		for i, ing := range item.Ingredients {
-			if ing.QuantityUsed <= 0 {
+			if ing.Quantity <= 0 {
 				return fmt.Errorf("%s: quantity_used must be greater than 0", op)
 			}
 			values = append(values, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
-			args = append(args, id, ing.ID, ing.QuantityUsed)
+			args = append(args, id, ing.ID, ing.Quantity)
 		}
 
 		_, err = tx.ExecContext(ctx, query+strings.Join(values, ","), args...)

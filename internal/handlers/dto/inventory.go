@@ -7,15 +7,22 @@ import (
 type InventoryItemRequest struct {
 	Name     *string  `json:"name"`
 	Quantity *float64 `json:"quantity"`
-	UnitType *string  `json:"unitType"`
+	UnitType *string  `json:"unit"`
 	Price    *float64 `json:"price"`
 }
 
 func (r InventoryItemRequest) MapToInventoryItemEntity() entity.InventoryItem {
 	return entity.InventoryItem{
-		ItemName:     *r.Name,
-		QuantityUsed: *r.Quantity,
-		Unit:         *r.UnitType,
-		Price:        *r.Price,
+		ItemName: *r.Name,
+		Quantity: *r.Quantity,
+		Unit:     *r.UnitType,
+		Price:    *r.Price,
 	}
+}
+
+type LefOverItem struct {
+	Name     string  `json:"name"`
+	Quantity float64 `json:"quantity"`
+	UnitType string  `json:"unit"`
+	Price    float64 `json:"price"`
 }

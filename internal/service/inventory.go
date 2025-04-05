@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"frappuccino-alem/internal/entity"
 	"frappuccino-alem/internal/handlers/dto"
-	"time"
 )
 
 type InventoryRepository interface {
@@ -100,9 +101,9 @@ func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, Inventor
 		}
 
 		if req.Quantity != nil {
-			if item.QuantityUsed != *req.Quantity {
+			if item.Quantity != *req.Quantity {
 				updated = true
-				item.QuantityUsed = *req.Quantity
+				item.Quantity = *req.Quantity
 			}
 		}
 
@@ -110,6 +111,13 @@ func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, Inventor
 			if item.Unit != *req.UnitType {
 				updated = true
 				item.Unit = *req.UnitType
+			}
+		}
+
+		if req.Price != nil {
+			if item.Price != *req.Price {
+				updated = true
+				item.Price = *req.Price
 			}
 		}
 
@@ -121,4 +129,40 @@ func (s *InventoryService) UpdateInventoryItemById(ctx context.Context, Inventor
 		err = fmt.Errorf("no fields were updated")
 		return
 	})
+}
+
+func (s *InventoryService) GetPaginatedLeftOverItems(ctx context.Context, pagination *dto.Pagination) (*dto.PaginationResponse[dto.LefOverItem], error) {
+	const op = "service.GetPaginatedLeftOverItems"
+
+	totalItems, err := s.repo.GetTotalInventoryCount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	totalPages := (totalItems + pagination.PageSize - 1) / pagination.PageSize
+
+	items, err := s.repo.GetAllInventoryItems(ctx, pagination)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	leftoverItems := make([]dto.LefOverItem, 0)
+	for _, item := range items {
+		leftoverItems = append(leftoverItems, dto.LefOverItem{
+			Name:     item.ItemName,
+			Quantity: item.Quantity,
+			UnitType: item.Unit,
+			Price:    item.Price,
+		})
+	}
+
+	response := &dto.PaginationResponse[dto.LefOverItem]{
+		CurrentPage: pagination.Page,
+		HasNextPage: pagination.Page < totalPages,
+		PageSize:    pagination.PageSize,
+		TotalPages:  totalPages,
+		Data:        leftoverItems,
+	}
+
+	return response, nil
 }

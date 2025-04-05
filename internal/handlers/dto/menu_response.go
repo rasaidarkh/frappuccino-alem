@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"frappuccino-alem/internal/entity"
 	"time"
+
+	"frappuccino-alem/internal/entity"
 )
 
 type MenuItemResponse struct {
@@ -50,7 +51,7 @@ func mapIngredientsEntityToResponse(entities []entity.InventoryItem) []MenuItemI
 		response[i] = MenuItemIngredientResponse{
 			InventoryID:  e.ID,
 			Name:         e.ItemName,
-			QuantityUsed: e.QuantityUsed,
+			QuantityUsed: e.Quantity,
 			Unit:         e.Unit,
 		}
 	}
@@ -84,7 +85,7 @@ func ToMenuItemIngredientResponse(ingredient entity.InventoryItem) MenuItemIngre
 	return MenuItemIngredientResponse{
 		InventoryID:  ingredient.ID,
 		Name:         ingredient.ItemName,
-		QuantityUsed: ingredient.QuantityUsed,
+		QuantityUsed: ingredient.Quantity,
 		Unit:         ingredient.Unit,
 	}
 }

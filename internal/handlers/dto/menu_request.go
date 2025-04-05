@@ -87,8 +87,8 @@ func mapIngredientsDTOToEntity(dtos []MenuItemIngredientDTO) []entity.InventoryI
 	ingredients := make([]entity.InventoryItem, len(dtos))
 	for i, dto := range dtos {
 		ingredients[i] = entity.InventoryItem{
-			ID:           dto.InventoryID,
-			QuantityUsed: dto.QuantityUsed,
+			ID:       dto.InventoryID,
+			Quantity: dto.QuantityUsed,
 		}
 	}
 	return ingredients
