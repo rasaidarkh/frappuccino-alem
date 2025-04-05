@@ -32,49 +32,44 @@ func NewMenuStore(db *sql.DB) *menuRepository {
 
 func (s *menuRepository) CreateMenuItem(ctx context.Context, item entity.MenuItem) (int64, error) {
 	const op = "Store.CreateMenuItem"
-
-	modelItem := mapper.ToMenuItemModel(item)
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-
 	var id int64
-	err = tx.QueryRowContext(ctx,
-		`INSERT INTO menu_items (name, description, price, categories, allergens, metadata)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id`,
-		modelItem.Name, modelItem.Description, modelItem.Price,
-		modelItem.Categories, modelItem.Allergens, modelItem.Metadata,
-	).Scan(&id)
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
-	}
 
-	if len(item.Ingredients) > 0 {
-		valueStrings := make([]string, 0, len(item.Ingredients))
-		valueArgs := make([]interface{}, 0, len(item.Ingredients)*3)
+	err := runInTx(s.db, func(tx *sql.Tx) error {
+		modelItem := mapper.ToMenuItemModel(item)
 
-		for i, ing := range item.Ingredients {
-			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
-			valueArgs = append(valueArgs, id, ing.ID, ing.Quantity)
-		}
-
-		_, err = tx.ExecContext(ctx,
-			fmt.Sprintf(`INSERT INTO menu_item_ingredients (menu_item_id, ingredient_id, quantity_used)  
-				 VALUES %s`, strings.Join(valueStrings, ",")),
-			valueArgs...)
+		err := tx.QueryRowContext(ctx,
+			`INSERT INTO menu_items (name, description, price, categories, allergens, metadata)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING id`,
+			modelItem.Name, modelItem.Description, modelItem.Price,
+			modelItem.Categories, modelItem.Allergens, modelItem.Metadata,
+		).Scan(&id)
 		if err != nil {
-			return -1, fmt.Errorf("%s: %w", op, err)
+			return fmt.Errorf("insert menu item: %w", err)
 		}
-	}
 
-	if err = tx.Commit(); err != nil {
+		// Insert ingredients if present
+		if len(item.Ingredients) > 0 {
+			valueStrings := make([]string, 0, len(item.Ingredients))
+			valueArgs := make([]interface{}, 0, len(item.Ingredients)*3)
+
+			for i, ing := range item.Ingredients {
+				valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
+				valueArgs = append(valueArgs, id, ing.ID, ing.Quantity)
+			}
+
+			_, err = tx.ExecContext(ctx,
+				fmt.Sprintf(`INSERT INTO menu_item_ingredients (menu_item_id, ingredient_id, quantity_used)  
+					VALUES %s`, strings.Join(valueStrings, ",")),
+				valueArgs...)
+			if err != nil {
+				return fmt.Errorf("insert ingredients: %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
