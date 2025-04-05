@@ -110,6 +110,44 @@ func (s *menuService) UpdateMenuItemById(ctx context.Context, id int64, req dto.
 			}
 		}
 
+		if req.Description != nil {
+			if item.Description != *req.Description {
+				updated = true
+				item.Description = *req.Description
+			}
+		}
+
+		if req.Price != nil {
+			if item.Price != *req.Price {
+				updated = true
+				item.Price = *req.Price
+			}
+		}
+
+		if req.Categories != nil {
+			if !testEq(item.Categories, *req.Categories) {
+				updated = true
+				item.Categories = *req.Categories
+			}
+		}
+
+		if req.Allergens != nil {
+			if !testEq(item.Allergens, *req.Allergens) {
+				updated = true
+				item.Allergens = *req.Allergens
+			}
+		}
+
+		if req.Metadata != nil {
+			updated = true
+			item.Metadata = *req.Metadata
+		}
+
+		if req.Ingredients != nil {
+			updated = true
+			item.Ingredients = req.MapToEntity().Ingredients
+		}
+
 		if updated {
 			item.UpdatedAt = time.Now()
 			return
@@ -127,4 +165,16 @@ func (s *menuService) DeleteMenuItemById(ctx context.Context, id int64) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
+}
+
+func testEq(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

@@ -113,10 +113,9 @@ func (h *MenuHandler) getMenuItemById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parsePathID(r, "id")
 	if err != nil {
-		h.logger.Error("Cannot convert menu id to integer value", "error", err.Error())
-		utils.WriteError(w, http.StatusBadRequest, errors.New("Cannot convert menu id to integer value"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	var req dto.MenuItemRequest
@@ -139,11 +138,11 @@ func (h *MenuHandler) updateMenuItemById(w http.ResponseWriter, r *http.Request)
 	h.logger.Debug("update request ", "menuRequest", req)
 	err = h.service.UpdateMenuItemById(r.Context(), int64(id), req)
 	if err != nil {
-		h.logger.Error("Failed to update menu item", slog.Int("id", id), "error", err.Error())
+		h.logger.Error("Failed to update menu item", slog.Int64("id", id), "error", err.Error())
 		utils.WriteError(w, http.StatusInternalServerError, errors.New("Failed to update menu item"))
 		return
 	}
-	h.logger.Info("Succeeded to update menu item", slog.Int("id", id))
+	h.logger.Info("Succeeded to update menu item", slog.Int64("id", id))
 	utils.WriteMessage(w, http.StatusOK, "Updated menu item")
 }
 

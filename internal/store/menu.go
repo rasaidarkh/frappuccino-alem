@@ -11,6 +11,8 @@ import (
 	"frappuccino-alem/internal/handlers/dto"
 	"frappuccino-alem/models"
 	"frappuccino-alem/models/mapper"
+
+	"github.com/lib/pq"
 )
 
 type MenuRepository interface {
@@ -230,49 +232,82 @@ func (s *menuRepository) GetMenuItemById(ctx context.Context, id int64) (entity.
 func (r *menuRepository) UpdateByID(ctx context.Context, id int64, updateFn func(item *entity.MenuItem) (bool, error)) error {
 	const op = "Store.Menu.UpdateByID"
 	return runInTx(r.db, func(tx *sql.Tx) error {
-		row := tx.QueryRowContext(ctx, "SELECT name, description, price, categories, allergens, metadata FROM menu_items WHERE id = $1 FOR UPDATE", id)
+		// Use COALESCE to handle NULL arrays
+		row := tx.QueryRowContext(ctx, `
+            SELECT 
+                name, 
+                description, 
+                price, 
+                COALESCE(categories, '{}') AS categories,
+                COALESCE(allergens, '{}') AS allergens,
+                COALESCE(metadata, '{}') AS metadata
+            FROM menu_items 
+            WHERE id = $1 FOR UPDATE`, id)
 
-		var name string
-		var description string
-		var price float64
-		var categories []string
-		var allergens []string
-		var metadata entity.JSONB
-		err := row.Scan(&name, &description, &price, &categories, &allergens, &metadata)
+		var (
+			name        string
+			description string
+			price       float64
+			categories  pq.StringArray
+			allergens   pq.StringArray
+			metadata    entity.JSONB
+		)
+
+		err := row.Scan(
+			&name,
+			&description,
+			&price,
+			&categories,
+			&allergens,
+			&metadata,
+		)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		item := &entity.MenuItem{
 			ID:          id,
 			Name:        name,
+			Description: description,
 			Price:       price,
-			Categories:  categories,
+			Categories:  categories, // Convert to regular slice
 			Allergens:   allergens,
 			Metadata:    metadata,
-			Ingredients: nil,
 		}
 
 		updated, err := updateFn(item)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		if !updated {
 			return nil
 		}
 
-		fmt.Println(item)
+		// Add your update execution logic here
+		_, err = tx.ExecContext(ctx, `
+            UPDATE menu_items SET
+                name = $1,
+                description = $2,
+                price = $3,
+                categories = $4,
+                allergens = $5,
+                metadata = $6,
+                updated_at = NOW()
+            WHERE id = $7`,
+			item.Name,
+			item.Description,
+			item.Price,
+			pq.Array(item.Categories), // Use pq.Array for updates
+			pq.Array(item.Allergens),
+			item.Metadata,
+			id,
+		)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
 		return nil
-
-		// _, err = tx.ExecContext(ctx,
-		// 	"UPDATE inventory SET item_name = $1, quantity = $2, unit = $3, price = $4, updated_at = $5 WHERE id = $6",
-		// 	item.ItemName, item.Quantity, item.Unit, item.Price, item.UpdatedAt, item.ID)
-		// if err != nil {
-		// 	return fmt.Errorf("%s: %w", op, err)
-		// }
-
-		// return nil
 	})
 }
 
