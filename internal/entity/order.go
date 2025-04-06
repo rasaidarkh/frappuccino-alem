@@ -11,11 +11,19 @@ type Order struct {
 	Status              OrderStatus
 	PaymentMethod       PaymentMethod
 	SpecialInstructions JSONB
+	OrderItems          []OrderItem
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 }
 
 type OrderStatus int
+
+type OrderItem struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Price    int64  `json:"price"`
+	Quantity int64  `json:"quantity"`
+}
 
 const (
 	OrderPending OrderStatus = iota
