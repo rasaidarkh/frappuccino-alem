@@ -18,6 +18,7 @@ type ReportService interface {
 	GetPopularItems(ctx context.Context) ([]entity.PopularItem, error)
 	GetFilterSearch(ctx context.Context, search string, filter string, minPrice float64, maxPrice float64) (entity.SearchResult, error)
 	GetTotalItemsByPeriod(ctx context.Context, period string, month int, year int) (entity.TotalItemsByPeriod, error)
+	GetOrderedItemsReport(ctx context.Context, startDate time.Time, endDate time.Time) (entity.NumberOfOrderedItemsByPeriod, error)
 }
 
 type ReportHandler struct {
@@ -38,6 +39,9 @@ func (h *ReportHandler) RegisterEndpoints(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /reports/search", h.GetFilterSearch)
 	mux.HandleFunc("GET /reports/orderedItemsByPeriod", h.GetTotalItemsByPeriod)
+
+	mux.HandleFunc("GET /orders/numberOfOrderedItemsByPeriod", h.GetNumberOfOrderedItems)
+	mux.HandleFunc("GET /orders/numberOfOrderedItemsByPeriod/", h.GetNumberOfOrderedItems)
 }
 
 func (h *ReportHandler) GetPopularItems(w http.ResponseWriter, r *http.Request) {
@@ -183,6 +187,46 @@ func (h *ReportHandler) GetTotalItemsByPeriod(w http.ResponseWriter, r *http.Req
 	default:
 		utils.WriteError(w, http.StatusBadRequest, errors.New("invalid period value"))
 	}
+}
+
+func (h *ReportHandler) GetNumberOfOrderedItems(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	startDate := q.Get("startDate")
+	if startDate == "" {
+		startDate = time.Time{}.Format("2006-01-02")
+	}
+	endDate := q.Get("endDate")
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	start, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		h.logger.Error("failed to parse start date", "error", err.Error())
+		http.Error(w, "Invalid start date format", http.StatusBadRequest)
+		return
+	}
+	end, err := time.Parse("2006-01-02", endDate)
+	if err != nil {
+		h.logger.Error("failed to parse end date", "error", err.Error())
+		http.Error(w, "Invalid end date format", http.StatusBadRequest)
+		return
+	}
+	if start.After(end) {
+		h.logger.Error("start date is after end date")
+		http.Error(w, "Start date cannot be after end date", http.StatusBadRequest)
+		return
+	}
+
+	data, err := h.service.GetOrderedItemsReport(r.Context(), start, end)
+	if err != nil {
+		h.logger.Error("could not get total items by period", "error", err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, data)
 }
 
 func parseYearParam(yearStr string) (int, error) {

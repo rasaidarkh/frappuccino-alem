@@ -12,9 +12,17 @@ type MenuItem struct {
 	Categories  []string
 	Allergens   []string
 	Metadata    JSONB
-	Ingredients []InventoryItem
+	Ingredients []MenuIngredient
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type MenuIngredient struct {
+	ItemID   int64
+	Name     string
+	Quantity float64
+	Unit     string
+	Price    float64
 }
 
 // type PriceHistory struct {

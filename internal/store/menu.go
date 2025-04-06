@@ -57,7 +57,7 @@ func (s *menuRepository) CreateMenuItem(ctx context.Context, item entity.MenuIte
 
 			for i, ing := range item.Ingredients {
 				valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
-				valueArgs = append(valueArgs, id, ing.ID, ing.Quantity)
+				valueArgs = append(valueArgs, id, ing.ItemID, ing.Quantity)
 			}
 
 			_, err = tx.ExecContext(ctx,
@@ -136,7 +136,7 @@ func (s *menuRepository) GetAllMenuItems(ctx context.Context, pagination *dto.Pa
 	return entities, nil
 }
 
-func (s *menuRepository) getIngredientsForMenuItem(ctx context.Context, menuItemID int64) ([]entity.InventoryItem, error) {
+func (s *menuRepository) getIngredientsForMenuItem(ctx context.Context, menuItemID int64) ([]entity.MenuIngredient, error) {
 	const op = "Store.getIngredientsForMenuItem"
 
 	query := `
@@ -157,7 +157,7 @@ func (s *menuRepository) getIngredientsForMenuItem(ctx context.Context, menuItem
 	}
 	defer rows.Close()
 
-	var ingredients []entity.InventoryItem
+	var ingredients []entity.MenuIngredient
 	for rows.Next() {
 		var model models.Inventory
 		var quantityUsed float64
@@ -171,9 +171,9 @@ func (s *menuRepository) getIngredientsForMenuItem(ctx context.Context, menuItem
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-		ingredients = append(ingredients, entity.InventoryItem{
-			ID:       model.ID,
-			ItemName: model.ItemName, // Map to entity field
+		ingredients = append(ingredients, entity.MenuIngredient{
+			ItemID:   model.ID,
+			Name:     model.ItemName, // Map to entity field
 			Quantity: quantityUsed,
 			Unit:     model.Unit,
 			Price:    model.Price,

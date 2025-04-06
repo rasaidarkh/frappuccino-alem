@@ -22,7 +22,7 @@ func ToMenuItemModel(e entity.MenuItem) models.MenuItem {
 	}
 }
 
-func ToMenuItemEntity(m models.MenuItem, ingredients []entity.InventoryItem) entity.MenuItem {
+func ToMenuItemEntity(m models.MenuItem, ingredients []entity.MenuIngredient) entity.MenuItem {
 	return entity.MenuItem{
 		ID:          m.ID,
 		Name:        m.Name,

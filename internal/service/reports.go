@@ -16,6 +16,7 @@ type ReportRepository interface {
 	SearchOrders(ctx context.Context, query string, minPrice, maxPrice float64) ([]entity.SearchOrder, error)
 	GetTotalItemsByDay(ctx context.Context, month int, year int) (map[int]int, error)
 	GetTotalItemsByMonth(ctx context.Context, year int) (map[int]int, error)
+	GetOrderedItemsReport(ctx context.Context, startDate, endDate time.Time) (entity.NumberOfOrderedItemsByPeriod, error)
 }
 
 type ReportService struct {
@@ -28,8 +29,6 @@ func NewReportService(repo ReportRepository) *ReportService {
 
 func (s *ReportService) GetPopularItems(ctx context.Context) ([]entity.PopularItem, error) {
 	const op = "service.GetPopularItems"
-	// logic here ...
-
 	popularItems, err := s.repo.GetPopularItems(ctx)
 	if err != nil {
 		return []entity.PopularItem{}, fmt.Errorf("%s: %w", op, err)
@@ -40,7 +39,6 @@ func (s *ReportService) GetPopularItems(ctx context.Context) ([]entity.PopularIt
 
 func (s *ReportService) GetTotalSales(ctx context.Context) (float64, error) {
 	const op = "service.GetTotalSales"
-	// logic here ...
 	totalSales, err := s.repo.GetTotalSales(ctx)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
@@ -50,7 +48,6 @@ func (s *ReportService) GetTotalSales(ctx context.Context) (float64, error) {
 
 func (s *ReportService) GetTotalItemsByPeriod(ctx context.Context, period string, month int, year int) (entity.TotalItemsByPeriod, error) {
 	const op = "service.GetTotalItemsByPeriod"
-
 	result := entity.TotalItemsByPeriod{}
 
 	switch period {
@@ -117,4 +114,8 @@ func (s *ReportService) GetFilterSearch(ctx context.Context, search string, filt
 	results.Orders = orderResults
 	results.Matches = len(menuResults) + len(orderResults)
 	return results, nil
+}
+
+func (s *ReportService) GetOrderedItemsReport(ctx context.Context, startDate, endDate time.Time) (entity.NumberOfOrderedItemsByPeriod, error) {
+	return s.repo.GetOrderedItemsReport(ctx, startDate, endDate)
 }

@@ -57,11 +57,11 @@ func (r MenuItemRequest) Validate() error {
 }
 
 func (r MenuItemRequest) MapToEntity() entity.MenuItem {
-	ingredients := make([]entity.InventoryItem, 0)
+	ingredients := make([]entity.MenuIngredient, 0)
 	if r.Ingredients != nil {
 		for _, i := range *r.Ingredients {
-			ingredients = append(ingredients, entity.InventoryItem{
-				ID:       *i.ItemID,
+			ingredients = append(ingredients, entity.MenuIngredient{
+				ItemID:   *i.ItemID,
 				Quantity: *i.Quantity,
 			})
 		}
@@ -122,8 +122,8 @@ func MenuItemToResponse(m entity.MenuItem) MenuItemResponse {
 	ingredients := make([]MenuIngredientResponse, 0)
 	for _, i := range m.Ingredients {
 		ingredients = append(ingredients, MenuIngredientResponse{
-			ID:       strconv.FormatInt(i.ID, 10),
-			Name:     i.ItemName,
+			ID:       strconv.FormatInt(i.ItemID, 10),
+			Name:     i.Name,
 			Quantity: i.Quantity,
 			Unit:     i.Unit,
 			Price:    i.Price,
@@ -146,8 +146,8 @@ func MenuItemToDetailedResponse(m entity.MenuItem) MenuItemDetailedResponse {
 	ingredients := make([]MenuIngredientResponse, 0)
 	for _, i := range m.Ingredients {
 		ingredients = append(ingredients, MenuIngredientResponse{
-			ID:       strconv.FormatInt(i.ID, 10),
-			Name:     i.ItemName,
+			ID:       strconv.FormatInt(i.ItemID, 10),
+			Name:     i.Name,
 			Quantity: i.Quantity,
 			Unit:     i.Unit,
 			Price:    i.Price,

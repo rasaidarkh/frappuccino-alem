@@ -51,7 +51,6 @@ func (h *MenuHandler) createMenuItem(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Invalid request: %v", err))
 		return
 	}
-
 	entityItem := req.MapToEntity()
 	item, err := h.service.CreateMenuItem(r.Context(), entityItem)
 	if err != nil {

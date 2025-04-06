@@ -38,14 +38,18 @@ func (s *menuService) CreateMenuItem(ctx context.Context, item entity.MenuItem) 
 	const op = "service.CreateMenuItem"
 
 	// Validate ingredients exist
-	for _, ing := range item.Ingredients {
-		_, err := s.inventoryRepo.GetInventoryItemById(ctx, ing.ID)
+	for i, ing := range item.Ingredients {
+
+		inventoryItem, err := s.inventoryRepo.GetInventoryItemById(ctx, ing.ItemID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
-				return entity.MenuItem{}, fmt.Errorf("ingredient %d not found", ing.ID)
+				return entity.MenuItem{}, fmt.Errorf("ingredient %d not found", ing.ItemID)
 			}
 			return entity.MenuItem{}, fmt.Errorf("%s: %w", op, err)
 		}
+		item.Ingredients[i].Name = inventoryItem.ItemName
+		item.Ingredients[i].Unit = inventoryItem.Unit
+		item.Ingredients[i].Price = inventoryItem.Price
 	}
 
 	// Proceed with creation
@@ -55,6 +59,7 @@ func (s *menuService) CreateMenuItem(ctx context.Context, item entity.MenuItem) 
 	}
 
 	item.ID = id
+	// item.Ingredients = resultIngredients
 	return item, nil
 }
 

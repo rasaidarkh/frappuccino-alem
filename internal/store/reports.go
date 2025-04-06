@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"frappuccino-alem/internal/entity"
+	"time"
 
 	"github.com/lib/pq"
 )
@@ -219,4 +220,43 @@ func (s *ReportStore) GetTotalItemsByMonth(ctx context.Context, year int) (map[i
 	}
 
 	return results, nil
+}
+
+func (r *ReportStore) GetOrderedItemsReport(ctx context.Context, startDate, endDate time.Time) (entity.NumberOfOrderedItemsByPeriod, error) {
+	query := `
+        SELECT 
+            mi.name AS item_name,
+            COALESCE(SUM(oi.quantity), 0) AS total_quantity
+        FROM menu_items mi
+        LEFT JOIN (
+            SELECT oi.menu_item_id, oi.quantity 
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE 
+                (o.created_at >= $1 OR $1 IS NULL) AND
+                (o.created_at <= $2 OR $2 IS NULL)
+        ) oi ON mi.id = oi.menu_item_id
+        GROUP BY mi.name
+    `
+
+	rows, err := r.db.QueryContext(ctx, query, startDate, endDate)
+	if err != nil {
+		return entity.NumberOfOrderedItemsByPeriod{}, err
+	}
+	defer rows.Close()
+
+	report := entity.NumberOfOrderedItemsByPeriod{
+		OrderedItems: make(map[string]int),
+	}
+
+	for rows.Next() {
+		var name string
+		var quantity int
+		if err := rows.Scan(&name, &quantity); err != nil {
+			return entity.NumberOfOrderedItemsByPeriod{}, err
+		}
+		report.OrderedItems[name] = quantity
+	}
+
+	return report, nil
 }

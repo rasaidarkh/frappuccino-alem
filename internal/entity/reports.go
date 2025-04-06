@@ -34,3 +34,7 @@ type SearchOrder struct {
 	Total        float64  `json:"total"`
 	Relevance    float64  `json:"relevance"`
 }
+
+type NumberOfOrderedItemsByPeriod struct {
+	OrderedItems map[string]int `json:"items"`
+}
