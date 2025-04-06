@@ -20,6 +20,8 @@ services:
       - POSTGRES_USER=latte
       - POSTGRES_PASSWORD=latte
       - POSTGRES_DB=frappuccino
+    ports:
+      - 5432:5432
     volumes:
       - ./db_init_scripts:/docker-entrypoint-initdb.d
       # - frappuccino-data-pq:/var/lib/postgresql/data

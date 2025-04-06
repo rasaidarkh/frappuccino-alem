@@ -45,16 +45,16 @@ func (s *OrderService) CreateOrder(ctx context.Context, order entity.Order) (ent
 		}
 		for _, ing := range menuItem.Ingredients {
 			// check if inventory quantity of existingItem is enough
-			storedIng, err := s.inventoryRepo.GetInventoryItemById(ctx, ing.ID)
+			storedIng, err := s.inventoryRepo.GetInventoryItemById(ctx, ing.ItemID)
 			if err != nil {
 				return order, err
 			}
 			if storedIng.Quantity < ing.Quantity*float64(item.Quantity) {
-				return order, fmt.Errorf("%s: not enough inventory for ingredient %s", op, ing.ItemName)
+				return order, fmt.Errorf("%s: not enough inventory for ingredient %s", op, ing.Name)
 			}
-			usedIngredients[ing.ID] += ing.Quantity * float64(item.Quantity)
-			if storedIng.Quantity < usedIngredients[ing.ID] {
-				return order, fmt.Errorf("%s: not enough inventory for ingredient %s", op, ing.ItemName)
+			usedIngredients[ing.ItemID] += ing.Quantity * float64(item.Quantity)
+			if storedIng.Quantity < usedIngredients[ing.ItemID] {
+				return order, fmt.Errorf("%s: not enough inventory for ingredient %s", op, ing.Name)
 			}
 		}
 		order.OrderItems[i].Name = menuItem.Name
