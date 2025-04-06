@@ -51,7 +51,7 @@ func (s *menuService) CreateMenuItem(ctx context.Context, item entity.MenuItem) 
 		item.Ingredients[i].Unit = inventoryItem.Unit
 		item.Ingredients[i].Price = inventoryItem.Price
 	}
-
+	
 	// Proceed with creation
 	id, err := s.menuRepo.CreateMenuItem(ctx, item)
 	if err != nil {
