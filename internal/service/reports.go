@@ -4,11 +4,18 @@ import (
 	"context"
 	"fmt"
 	"frappuccino-alem/internal/entity"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type ReportRepository interface {
 	GetPopularItems(ctx context.Context) ([]entity.PopularItem, error)
 	GetTotalSales(ctx context.Context) (float64, error)
+	SearchMenuItems(ctx context.Context, query string, minPrice, maxPrice float64) ([]entity.SearchMenuItem, error)
+	SearchOrders(ctx context.Context, query string, minPrice, maxPrice float64) ([]entity.SearchOrder, error)
+	GetTotalItemsByDay(ctx context.Context, month int, year int) (map[int]int, error)
+	GetTotalItemsByMonth(ctx context.Context, year int) (map[int]int, error)
 }
 
 type ReportService struct {
@@ -39,4 +46,75 @@ func (s *ReportService) GetTotalSales(ctx context.Context) (float64, error) {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 	return totalSales, nil
+}
+
+func (s *ReportService) GetTotalItemsByPeriod(ctx context.Context, period string, month int, year int) (entity.TotalItemsByPeriod, error) {
+	const op = "service.GetTotalItemsByPeriod"
+
+	result := entity.TotalItemsByPeriod{}
+
+	switch period {
+	case "day":
+		dayCounts, err := s.repo.GetTotalItemsByDay(ctx, month, year)
+		if err != nil {
+			return result, fmt.Errorf("%s: %w", op, err)
+		}
+
+		result.Period = "day"
+		result.Month = time.Month(month).String()
+		result.Year = year
+		result.OrderedItems = make([]map[string]int, 0)
+
+		for day, count := range dayCounts {
+			result.OrderedItems = append(result.OrderedItems,
+				map[string]int{strconv.Itoa(day): count})
+		}
+
+	case "month":
+		monthCounts, err := s.repo.GetTotalItemsByMonth(ctx, year)
+		if err != nil {
+			return result, fmt.Errorf("%s: %w", op, err)
+		}
+
+		result.Period = "month"
+		result.Year = year
+		result.OrderedItems = make([]map[string]int, 0)
+
+		for monthNum, count := range monthCounts {
+			monthName := strings.ToLower(time.Month(monthNum).String())
+			result.OrderedItems = append(result.OrderedItems,
+				map[string]int{monthName: count})
+		}
+
+	default:
+		return result, fmt.Errorf("%s: invalid period", op)
+	}
+
+	return result, nil
+}
+
+func (s *ReportService) GetFilterSearch(ctx context.Context, search string, filter string, minPrice float64, maxPrice float64) (entity.SearchResult, error) {
+	const op = "service.GetFilterSearch"
+	var results entity.SearchResult
+
+	var menuResults []entity.SearchMenuItem
+	var orderResults []entity.SearchOrder
+	var err error
+	if filter == "menu" || filter == "menu,orders" || filter == "" {
+		menuResults, err = s.repo.SearchMenuItems(ctx, search, minPrice, maxPrice)
+		if err != nil {
+			return entity.SearchResult{}, fmt.Errorf("%s: %w", op, err)
+		}
+	}
+	if filter == "orders" || filter == "menu,orders" || filter == "" {
+		orderResults, err = s.repo.SearchOrders(ctx, search, minPrice, maxPrice)
+		if err != nil {
+			return entity.SearchResult{}, fmt.Errorf("%s: %w", op, err)
+		}
+	}
+
+	results.MenuItems = menuResults
+	results.Orders = orderResults
+	results.Matches = len(menuResults) + len(orderResults)
+	return results, nil
 }
