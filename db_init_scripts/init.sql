@@ -35,11 +35,12 @@ CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
     customer_name TEXT NOT NULL,
     status ORDER_STATUS NOT NULL DEFAULT 'pending',
-    total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
+    total_amount DECIMAL(15,2) NOT NULL CHECK (total_amount >= 0),
     payment_method PAYMENT_METHOD NOT NULL,
     special_instructions JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(), 
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    search_vector tsvector
 );
 
 CREATE TABLE order_items (
@@ -82,3 +83,75 @@ CREATE TABLE staff (
     created_at TIMESTAMPTZ DEFAULT NOW(), 
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+
+
+UPDATE orders 
+SET search_vector = 
+    setweight(to_tsvector('english', COALESCE(customer_name, '')), 'A') ||
+    setweight((
+        SELECT to_tsvector('english', COALESCE(string_agg(mi.name, ' '), ''))
+        FROM order_items oi
+        JOIN menu_items mi ON oi.menu_item_id = mi.id
+        WHERE oi.order_id = orders.id
+    ), 'B');
+
+ALTER TABLE menu_items 
+ADD COLUMN search_vector tsvector GENERATED ALWAYS AS (
+    setweight(to_tsvector('english', name), 'A') ||
+    setweight(to_tsvector('english', description), 'B')
+) STORED;
+
+-- Order search vector function
+CREATE OR REPLACE FUNCTION update_order_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.search_vector := 
+        setweight(to_tsvector('english', COALESCE(NEW.customer_name, '')), 'A') ||
+        setweight((
+            SELECT to_tsvector('english', 
+                COALESCE(string_agg(mi.name || ' ' || COALESCE(mi.description, ''), ' '), '')
+            )
+            FROM order_items oi
+            JOIN menu_items mi ON oi.menu_item_id = mi.id
+            WHERE oi.order_id = NEW.id
+        ), 'B');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Triggers
+CREATE TRIGGER order_search_update
+BEFORE INSERT OR UPDATE ON orders
+FOR EACH ROW EXECUTE FUNCTION update_order_search_vector();
+
+CREATE OR REPLACE FUNCTION refresh_order_search_vector()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE orders SET updated_at = NOW()
+    WHERE id = COALESCE(NEW.order_id, OLD.order_id);
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER order_items_search_update
+AFTER INSERT OR UPDATE OR DELETE ON order_items
+FOR EACH ROW EXECUTE FUNCTION refresh_order_search_vector();
+
+-- Indexes
+CREATE INDEX idx_orders_search ON orders USING GIN(search_vector);
+CREATE INDEX idx_menu_items_search ON menu_items USING GIN(search_vector);
+
+-- Initialize existing data
+UPDATE orders 
+SET search_vector = 
+    setweight(to_tsvector('english', COALESCE(customer_name, '')), 'A') ||
+    setweight((
+        SELECT to_tsvector('english', 
+            COALESCE(string_agg(mi.name || ' ' || COALESCE(mi.description, ''), ' '), '')
+        )
+        FROM order_items oi
+        JOIN menu_items mi ON oi.menu_item_id = mi.id
+        WHERE oi.order_id = orders.id
+    ), 'B');
