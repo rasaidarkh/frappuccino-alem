@@ -47,7 +47,7 @@ func (s *menuService) CreateMenuItem(ctx context.Context, item entity.MenuItem) 
 			return entity.MenuItem{}, fmt.Errorf("%s: %w", op, err)
 		}
 	}
-
+	
 	// Proceed with creation
 	id, err := s.menuRepo.CreateMenuItem(ctx, item)
 	if err != nil {

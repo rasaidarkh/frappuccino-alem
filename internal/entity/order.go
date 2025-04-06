@@ -19,10 +19,10 @@ type Order struct {
 type OrderStatus int
 
 type OrderItem struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Price    int64  `json:"price"`
-	Quantity int64  `json:"quantity"`
+	ID       int64   `json:"id"`
+	Name     string  `json:"name"`
+	Price    float64 `json:"price"`
+	Quantity int64   `json:"quantity"`
 }
 
 const (
@@ -31,6 +31,21 @@ const (
 	OrderCompleted
 	OrderCancelled
 )
+
+func ParseStatus(s string) OrderStatus {
+	switch s {
+	case "pending":
+		return OrderPending
+	case "processing":
+		return OrderProcessing
+	case "completed":
+		return OrderCompleted
+	case "cancelled":
+		return OrderCancelled
+	default:
+		return OrderStatus(-1)
+	}
+}
 
 func (s OrderStatus) String() string {
 	switch s {
@@ -64,6 +79,19 @@ const (
 	PaymentCard
 	PaymentOnline
 )
+
+func ParsePaymentMethod(s string) PaymentMethod {
+	switch s {
+	case "cash":
+		return PaymentCash
+	case "card":
+		return PaymentCard
+	case "online":
+		return PaymentOnline
+	default:
+		return PaymentMethod(-1)
+	}
+}
 
 func (m PaymentMethod) String() string {
 	switch m {

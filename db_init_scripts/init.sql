@@ -8,7 +8,7 @@ CREATE TABLE inventory (
     quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0),
     unit TEXT NOT NULL,
     price DECIMAL(10,2) NOT NULL CHECK (price >= 0),  -- NEW COLUMN
-    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -20,7 +20,7 @@ CREATE TABLE menu_items (
     categories TEXT[] DEFAULT '{}',
     allergens TEXT[] DEFAULT '{}',
     metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -38,7 +38,7 @@ CREATE TABLE orders (
     total_amount DECIMAL(15,2) NOT NULL CHECK (total_amount >= 0),
     payment_method PAYMENT_METHOD NOT NULL,
     special_instructions JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     search_vector tsvector
 );
@@ -80,7 +80,7 @@ CREATE TABLE staff (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     role STAFF_ROLE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(), 
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
